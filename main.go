@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/services"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,19 +21,18 @@ import (
 	"github.com/filecoin-project/lotus/api/client"
 	logging "github.com/ipfs/go-log"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
-	"github.com/zondax/rosetta-filecoin-proxy/rosetta/tools"
 )
 
 var (
-	BlockchainName = BlockChainName
-	ServerPort, _  = strconv.Atoi(RosettaServerPort)
+	BlockchainName = tools.BlockChainName
+	ServerPort, _  = strconv.Atoi(tools.RosettaServerPort)
 )
 
 func logVersionsInfo() {
 	rosetta.Logger.Info("********| filecoin-indexing-rosetta-proxy |*********")
-	rosetta.Logger.Infof("Rosetta SDK version: %s", RosettaSDKVersion)
-	rosetta.Logger.Infof("Lotus version: %s", LotusVersion)
-	rosetta.Logger.Infof("Git revision: %s", GitRevision)
+	rosetta.Logger.Infof("Rosetta SDK version: %s", tools.RosettaSDKVersion)
+	rosetta.Logger.Infof("Lotus version: %s", tools.LotusVersion)
+	rosetta.Logger.Infof("Git revision: %s", tools.GitRevision)
 	rosetta.Logger.Info("****************************************************")
 }
 
@@ -156,9 +157,9 @@ func connectAPI(addr string, token string) (api.FullNode, jsonrpc.ClientCloser, 
 }
 
 func setupActorsDatabase(api *api.FullNode) {
-	var db tools.Database = &tools.Cache{}
+	var db database.Database = &database.Cache{}
 	db.NewImpl(api)
-	tools.ActorsDB = db
+	database.ActorsDB = db
 }
 
 func main() {

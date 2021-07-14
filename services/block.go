@@ -1,20 +1,16 @@
 package services
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
 	"github.com/coinbase/rosetta-sdk-go/server"
 	"github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/api"
-	"github.com/filecoin-project/lotus/chain/actors/builtin"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
-	initActor "github.com/filecoin-project/specs-actors/v4/actors/builtin/init"
-	filLib "github.com/zondax/rosetta-filecoin-lib"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/parser"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
-	"github.com/zondax/rosetta-filecoin-proxy/rosetta/tools"
+	rosettaTools "github.com/zondax/rosetta-filecoin-proxy/rosetta/tools"
 	"time"
 )
 
@@ -76,13 +72,15 @@ func (s *BlockAPIService) Block(
 		return nil, rosetta.BuildError(rosetta.ErrInsufficientQueryInputs, nil, true)
 	}
 
+	rosetta.Logger.Infof("/block - requested index %d", requestedHeight)
+
 	var tipSet *filTypes.TipSet
 	var err error
 	impl := func() {
 		tipSet, err = s.node.ChainGetTipSetByHeight(ctx, abi.ChainEpoch(requestedHeight), filTypes.EmptyTSK)
 	}
 
-	errTimeOut := tools.WrapWithTimeout(impl, LotusCallTimeOut)
+	errTimeOut := rosettaTools.WrapWithTimeout(impl, LotusCallTimeOut)
 	if errTimeOut != nil {
 		return nil, rosetta.ErrLotusCallTimedOut
 	}
@@ -117,7 +115,7 @@ func (s *BlockAPIService) Block(
 		impl = func() {
 			parentTipSet, err = s.node.ChainGetTipSet(ctx, tipSet.Parents())
 		}
-		errTimeOut = tools.WrapWithTimeout(impl, LotusCallTimeOut)
+		errTimeOut = rosettaTools.WrapWithTimeout(impl, LotusCallTimeOut)
 		if errTimeOut != nil {
 			return nil, rosetta.ErrLotusCallTimedOut
 		}
@@ -132,12 +130,13 @@ func (s *BlockAPIService) Block(
 
 	// Build transactions data
 	var transactions *[]*types.Transaction
+	var discoveredAddresses *[]database.AddressInfo
 	if requestedHeight > 1 {
 		states, err := getLotusStateCompute(ctx, &s.node, tipSet)
 		if err != nil {
 			return nil, err
 		}
-		transactions = buildTransactions(states)
+		transactions, discoveredAddresses = buildTransactions(states)
 	}
 
 	// Add block metadata
@@ -147,6 +146,7 @@ func (s *BlockAPIService) Block(
 		blockCIDs = append(blockCIDs, cid.String())
 	}
 	md[BlockCIDsKey] = blockCIDs
+	md["DiscoveredAddresses"] = discoveredAddresses
 
 	hashTipSet, err := rosetta.BuildTipSetKeyHash(tipSet.Key())
 	if err != nil {
@@ -182,10 +182,11 @@ func (s *BlockAPIService) Block(
 	return resp, nil
 }
 
-func buildTransactions(states *api.ComputeStateOutput) *[]*types.Transaction {
+func buildTransactions(states *api.ComputeStateOutput) (*[]*types.Transaction, *[]database.AddressInfo) {
 	defer rosetta.TimeTrack(time.Now(), "[Proxy]TraceAnalysis")
 
 	var transactions []*types.Transaction
+	var discoveredAddresses []database.AddressInfo
 	for i := range states.Trace {
 		trace := states.Trace[i]
 
@@ -196,12 +197,12 @@ func buildTransactions(states *api.ComputeStateOutput) *[]*types.Transaction {
 		var operations []*types.Operation
 
 		// Analyze full trace recursively
-		ProcessTrace(&trace.ExecutionTrace, &operations)
+		parser.ProcessTrace(&trace.ExecutionTrace, &operations, &discoveredAddresses)
 		if len(operations) > 0 {
 			// Add the corresponding "Fee" operation
 			if !trace.GasCost.TotalCost.Nil() {
 				opStatus := rosetta.OperationStatusOk
-				operations = appendOp(operations, "Fee", trace.Msg.From.String(),
+				operations = parser.AppendOp(operations, "Fee", trace.Msg.From.String(),
 					trace.GasCost.TotalCost.Neg().String(), opStatus, false, nil)
 			}
 
@@ -213,7 +214,7 @@ func buildTransactions(states *api.ComputeStateOutput) *[]*types.Transaction {
 			})
 		}
 	}
-	return &transactions
+	return &transactions, &discoveredAddresses
 }
 
 func getLotusStateCompute(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) (*api.ComputeStateOutput, *types.Error) {
@@ -226,262 +227,6 @@ func getLotusStateCompute(ctx context.Context, node *api.FullNode, tipSet *filTy
 		return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, err, true)
 	}
 	return states, nil
-}
-
-func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*types.Operation) {
-
-	if trace.Msg == nil {
-		return
-	}
-
-	baseMethod, err := rosetta.GetMethodName(trace.Msg)
-	if err != nil {
-		rosetta.Logger.Error("could not get method name. Error:", err.Message, err.Details)
-		baseMethod = "unknown"
-	}
-
-	if rosetta.IsOpSupported(baseMethod) {
-		fromPk, err1 := rosetta.GetActorPubKey(trace.Msg.From)
-		toPk, err2 := rosetta.GetActorPubKey(trace.Msg.To)
-		if err1 != nil || err2 != nil {
-			rosetta.Logger.Error("could not retrieve one or both pubkeys for addresses:",
-				trace.Msg.From.String(), trace.Msg.To.String())
-			return
-		}
-
-		opStatus := rosetta.OperationStatusFailed
-		if trace.MsgRct.ExitCode.IsSuccess() {
-			opStatus = rosetta.OperationStatusOk
-		}
-
-		switch baseMethod {
-		case "Send", "AddBalance":
-			{
-				*operations = appendOp(*operations, baseMethod, fromPk,
-					trace.Msg.Value.Neg().String(), opStatus, false, nil)
-				*operations = appendOp(*operations, baseMethod, toPk,
-					trace.Msg.Value.String(), opStatus, true, nil)
-			}
-		case "Exec":
-			{
-				*operations = appendOp(*operations, baseMethod, fromPk,
-					trace.Msg.Value.Neg().String(), opStatus, false, nil)
-				*operations = appendOp(*operations, baseMethod, toPk,
-					trace.Msg.Value.String(), opStatus, true, nil)
-
-				// Check if this Exec op created and funded a msig account
-				params, err := parseExecParams(trace.Msg, trace.MsgRct)
-				if err == nil {
-					var paramsMap map[string]interface{}
-					if err := json.Unmarshal([]byte(params), &paramsMap); err == nil {
-						if fundedAddress, ok := paramsMap["IDAddress"]; ok {
-							paramsMap["Method"] = "Send"
-							fromPk = toPk                 // init actor
-							toPk = fundedAddress.(string) // new msig address
-							*operations = appendOp(*operations, "Exec", fromPk,
-								trace.Msg.Value.Neg().String(), opStatus, false, &paramsMap)
-							*operations = appendOp(*operations, "Exec", toPk,
-								trace.Msg.Value.String(), opStatus, true, &paramsMap)
-						}
-					} else {
-						rosetta.Logger.Error("Could not parse message params for", baseMethod)
-					}
-				}
-			}
-		case "Propose":
-			{
-				params, err := parseProposeParams(trace.Msg)
-				if err != nil {
-					rosetta.Logger.Error("Could not parse message params for", baseMethod)
-					break
-				}
-
-				*operations = appendOp(*operations, baseMethod, fromPk,
-					"0", opStatus, false, &params)
-				*operations = appendOp(*operations, baseMethod, toPk,
-					"0", opStatus, true, &params)
-			}
-		case "SwapSigner", "AddSigner", "RemoveSigner":
-			{
-				params, err := parseMsigParams(trace.Msg)
-				if err == nil {
-					var paramsMap map[string]interface{}
-					if err := json.Unmarshal([]byte(params), &paramsMap); err == nil {
-						switch baseMethod {
-						case "SwapSigner":
-							{
-								*operations = appendOp(*operations, baseMethod, fromPk,
-									"0", opStatus, false, &paramsMap)
-								*operations = appendOp(*operations, baseMethod, toPk,
-									"0", opStatus, true, &paramsMap)
-							}
-						case "AddSigner", "RemoveSigner":
-							{
-								*operations = appendOp(*operations, baseMethod, fromPk,
-									"0", opStatus, false, &paramsMap)
-								*operations = appendOp(*operations, baseMethod, toPk,
-									"0", opStatus, true, &paramsMap)
-							}
-						}
-
-					} else {
-						rosetta.Logger.Error("Could not parse message params for", baseMethod)
-					}
-				}
-			}
-		case "AwardBlockReward", "ApplyRewards", "OnDeferredCronEvent",
-			"PreCommitSector", "ProveCommitSector", "SubmitWindowedPoSt":
-			{
-				*operations = appendOp(*operations, baseMethod, fromPk,
-					trace.Msg.Value.Neg().String(), opStatus, false, nil)
-				*operations = appendOp(*operations, baseMethod, toPk,
-					trace.Msg.Value.String(), opStatus, true, nil)
-			}
-		case "Approve", "Cancel":
-			{
-				*operations = appendOp(*operations, baseMethod, fromPk,
-					trace.Msg.Value.Neg().String(), opStatus, false, nil)
-				*operations = appendOp(*operations, baseMethod, toPk,
-					trace.Msg.Value.String(), opStatus, true, nil)
-			}
-		}
-	}
-
-	for i := range trace.Subcalls {
-		subTrace := trace.Subcalls[i]
-		ProcessTrace(&subTrace, operations)
-	}
-}
-
-func parseExecParams(msg *filTypes.Message, receipt *filTypes.MessageReceipt) (string, error) {
-
-	actorName := rosetta.GetActorNameFromAddress(msg.To)
-
-	switch actorName {
-	case "init":
-		{
-			reader := bytes.NewReader(msg.Params)
-			var params initActor.ExecParams
-			err := params.UnmarshalCBOR(reader)
-			if err != nil {
-				return "", err
-			}
-			execActorName := rosetta.GetActorNameFromCid(params.CodeCID)
-			switch execActorName {
-			case "multisig", "paymentchannel":
-				{
-					reader = bytes.NewReader(receipt.Return)
-					var execReturn initActor.ExecReturn
-					err = execReturn.UnmarshalCBOR(reader)
-					if err != nil {
-						return "", err
-					}
-					jsonResponse, err := json.Marshal(execReturn)
-					if err != nil {
-						return "", err
-					}
-					return string(jsonResponse), nil
-				}
-			default:
-				return "", nil
-			}
-		}
-	default:
-		return "", nil
-	}
-}
-
-func parseProposeParams(msg *filTypes.Message) (map[string]interface{}, error) {
-	r := &filLib.RosettaConstructionFilecoin{}
-	var params map[string]interface{}
-	msgSerial, err := msg.MarshalJSON()
-	if err != nil {
-		rosetta.Logger.Error("Could not parse params. Cannot serialize lotus message:", err.Error())
-		return params, err
-	}
-
-	actorCode, err := tools.ActorsDB.GetActorCode(msg.To)
-	if err != nil {
-		return params, err
-	}
-
-	if !builtin.IsMultisigActor(actorCode) {
-		return params, fmt.Errorf("this id doesn't correspond to a multisig actor")
-	}
-
-	innerMethod, parsedParams, err := r.ParseProposeTxParams(string(msgSerial), actorCode)
-	if err != nil {
-		rosetta.Logger.Error("Could not parse params. ParseProposeTxParams returned with error:", err.Error())
-		return params, err
-	}
-
-	err = json.Unmarshal([]byte(parsedParams), &params)
-	if err != nil {
-		return params, err
-	}
-
-	params["Method"] = innerMethod
-	return params, nil
-}
-
-func parseMsigParams(msg *filTypes.Message) (string, error) {
-	r := &filLib.RosettaConstructionFilecoin{}
-	msgSerial, err := msg.MarshalJSON()
-	if err != nil {
-		rosetta.Logger.Error("Could not parse params. Cannot serialize lotus message:", err.Error())
-		return "", err
-	}
-
-	actorCode, err := tools.ActorsDB.GetActorCode(msg.To)
-	if err != nil {
-		return "", err
-	}
-
-	if !builtin.IsMultisigActor(actorCode) {
-		return "", fmt.Errorf("this id doesn't correspond to a multisig actor")
-	}
-
-	parsedParams, err := r.ParseParamsMultisigTx(string(msgSerial), actorCode)
-	if err != nil {
-		rosetta.Logger.Error("Could not parse params. ParseParamsMultisigTx returned with error:", err.Error())
-		return "", err
-	}
-
-	return parsedParams, nil
-}
-
-func appendOp(ops []*types.Operation, opType string, account string, amount string, status string, relateOp bool, metadata *map[string]interface{}) []*types.Operation {
-	opIndex := int64(len(ops))
-	op := &types.Operation{
-		OperationIdentifier: &types.OperationIdentifier{
-			Index: opIndex,
-		},
-		Type:   opType,
-		Status: &status,
-		Account: &types.AccountIdentifier{
-			Address: account,
-		},
-		Amount: &types.Amount{
-			Value:    amount,
-			Currency: rosetta.GetCurrencyData(),
-		},
-	}
-
-	// Add metadata
-	if metadata != nil {
-		op.Metadata = *metadata
-	}
-
-	// Add related operation
-	if relateOp && opIndex > 0 {
-		op.RelatedOperations = []*types.OperationIdentifier{
-			{
-				Index: opIndex - 1,
-			},
-		}
-	}
-
-	return append(ops, op)
 }
 
 // BlockTransaction implements the /block/transaction endpoint.
