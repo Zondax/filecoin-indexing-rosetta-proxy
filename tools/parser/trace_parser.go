@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/coinbase/rosetta-sdk-go/types"
+	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/lotus/chain/actors/builtin"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	initActor "github.com/filecoin-project/specs-actors/v4/actors/builtin/init"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
 	filLib "github.com/zondax/rosetta-filecoin-lib"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 )
 
-func appendAddressInfo(arr *[]database.AddressInfo, info ...database.AddressInfo) {
+func appendAddressInfo(arr *[]types.AddressInfo, info ...types.AddressInfo) {
 	for _, i := range info {
 		if i.Robust != "" && i.Short != "" {
 			*arr = append(*arr, i)
@@ -22,7 +23,7 @@ func appendAddressInfo(arr *[]database.AddressInfo, info ...database.AddressInfo
 	}
 }
 
-func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*types.Operation, addresses *[]database.AddressInfo) {
+func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Operation, addresses *[]types.AddressInfo) {
 
 	if trace.Msg == nil {
 		return
@@ -155,7 +156,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*types.Operation
 	}
 }
 
-func searchForActorCreated(msg *filTypes.Message, receipt *filTypes.MessageReceipt) (*database.AddressInfo, error) {
+func searchForActorCreated(msg *filTypes.Message, receipt *filTypes.MessageReceipt) (*types.AddressInfo, error) {
 
 	toAddressInfo, err := tools.GetActorAddressInfo(msg.To)
 	if err != nil {
@@ -182,7 +183,7 @@ func searchForActorCreated(msg *filTypes.Message, receipt *filTypes.MessageRecei
 						return nil, err
 					}
 
-					info := database.AddressInfo{
+					info := types.AddressInfo{
 						Short:    execReturn.IDAddress.String(),
 						Robust:   execReturn.RobustAddress.String(),
 						ActorCid: params.CodeCID,
@@ -257,18 +258,18 @@ func parseMsigParams(msg *filTypes.Message) (string, error) {
 	return parsedParams, nil
 }
 
-func AppendOp(ops []*types.Operation, opType string, account string, amount string, status string, relateOp bool, metadata *map[string]interface{}) []*types.Operation {
+func AppendOp(ops []*rosettaTypes.Operation, opType string, account string, amount string, status string, relateOp bool, metadata *map[string]interface{}) []*rosettaTypes.Operation {
 	opIndex := int64(len(ops))
-	op := &types.Operation{
-		OperationIdentifier: &types.OperationIdentifier{
+	op := &rosettaTypes.Operation{
+		OperationIdentifier: &rosettaTypes.OperationIdentifier{
 			Index: opIndex,
 		},
 		Type:   opType,
 		Status: &status,
-		Account: &types.AccountIdentifier{
+		Account: &rosettaTypes.AccountIdentifier{
 			Address: account,
 		},
-		Amount: &types.Amount{
+		Amount: &rosettaTypes.Amount{
 			Value:    amount,
 			Currency: rosetta.GetCurrencyData(),
 		},
@@ -281,7 +282,7 @@ func AppendOp(ops []*types.Operation, opType string, account string, amount stri
 
 	// Add related operation
 	if relateOp && opIndex > 0 {
-		op.RelatedOperations = []*types.OperationIdentifier{
+		op.RelatedOperations = []*rosettaTypes.OperationIdentifier{
 			{
 				Index: opIndex - 1,
 			},

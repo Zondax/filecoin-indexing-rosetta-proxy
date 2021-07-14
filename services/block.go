@@ -3,12 +3,12 @@ package services
 import (
 	"context"
 	"github.com/coinbase/rosetta-sdk-go/server"
-	"github.com/coinbase/rosetta-sdk-go/types"
+	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/parser"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 	rosettaTools "github.com/zondax/rosetta-filecoin-proxy/rosetta/tools"
 	"time"
@@ -23,12 +23,12 @@ const BlockCIDsKey = "blockCIDs"
 
 // BlockAPIService implements the server.BlockAPIServicer interface.
 type BlockAPIService struct {
-	network *types.NetworkIdentifier
+	network *rosettaTypes.NetworkIdentifier
 	node    api.FullNode
 }
 
 // NewBlockAPIService creates a new instance of a BlockAPIService.
-func NewBlockAPIService(network *types.NetworkIdentifier, api *api.FullNode) server.BlockAPIServicer {
+func NewBlockAPIService(network *rosettaTypes.NetworkIdentifier, api *api.FullNode) server.BlockAPIServicer {
 	return &BlockAPIService{
 		network: network,
 		node:    *api,
@@ -38,8 +38,8 @@ func NewBlockAPIService(network *types.NetworkIdentifier, api *api.FullNode) ser
 // Block implements the /block endpoint.
 func (s *BlockAPIService) Block(
 	ctx context.Context,
-	request *types.BlockRequest,
-) (*types.BlockResponse, *types.Error) {
+	request *rosettaTypes.BlockRequest,
+) (*rosettaTypes.BlockResponse, *rosettaTypes.Error) {
 
 	if request.BlockIdentifier == nil {
 		return nil, rosetta.BuildError(rosetta.ErrMalformedValue, nil, true)
@@ -93,7 +93,7 @@ func (s *BlockAPIService) Block(
 	// Check if the retrieved TipSet is actually the requested one
 	// details on: https://github.com/filecoin-project/lotus/blob/49d64f7f7e22973ca0cfbaaf337fcfb3c2d47707/api/api_full.go#L65-L67
 	if int64(tipSet.Height()) != requestedHeight {
-		return &types.BlockResponse{}, nil
+		return &rosettaTypes.BlockResponse{}, nil
 	}
 
 	if request.BlockIdentifier.Hash != nil {
@@ -129,8 +129,8 @@ func (s *BlockAPIService) Block(
 	}
 
 	// Build transactions data
-	var transactions *[]*types.Transaction
-	var discoveredAddresses *[]database.AddressInfo
+	var transactions *[]*rosettaTypes.Transaction
+	var discoveredAddresses *[]types.AddressInfo
 	if requestedHeight > 1 {
 		states, err := getLotusStateCompute(ctx, &s.node, tipSet)
 		if err != nil {
@@ -152,12 +152,12 @@ func (s *BlockAPIService) Block(
 	if err != nil {
 		return nil, rosetta.BuildError(rosetta.ErrUnableToBuildTipSetHash, nil, true)
 	}
-	blockId := &types.BlockIdentifier{
+	blockId := &rosettaTypes.BlockIdentifier{
 		Index: int64(tipSet.Height()),
 		Hash:  *hashTipSet,
 	}
 
-	parentBlockId := &types.BlockIdentifier{}
+	parentBlockId := &rosettaTypes.BlockIdentifier{}
 	hashParentTipSet, err := rosetta.BuildTipSetKeyHash(parentTipSet.Key())
 	if err != nil {
 		return nil, rosetta.BuildError(rosetta.ErrUnableToBuildTipSetHash, nil, true)
@@ -165,7 +165,7 @@ func (s *BlockAPIService) Block(
 	parentBlockId.Index = int64(parentTipSet.Height())
 	parentBlockId.Hash = *hashParentTipSet
 
-	respBlock := &types.Block{
+	respBlock := &rosettaTypes.Block{
 		BlockIdentifier:       blockId,
 		ParentBlockIdentifier: parentBlockId,
 		Timestamp:             int64(tipSet.MinTimestamp()) * rosetta.FactorSecondToMillisecond, // [ms]
@@ -175,18 +175,18 @@ func (s *BlockAPIService) Block(
 		respBlock.Transactions = *transactions
 	}
 
-	resp := &types.BlockResponse{
+	resp := &rosettaTypes.BlockResponse{
 		Block: respBlock,
 	}
 
 	return resp, nil
 }
 
-func buildTransactions(states *api.ComputeStateOutput) (*[]*types.Transaction, *[]database.AddressInfo) {
+func buildTransactions(states *api.ComputeStateOutput) (*[]*rosettaTypes.Transaction, *[]types.AddressInfo) {
 	defer rosetta.TimeTrack(time.Now(), "[Proxy]TraceAnalysis")
 
-	var transactions []*types.Transaction
-	var discoveredAddresses []database.AddressInfo
+	var transactions []*rosettaTypes.Transaction
+	var discoveredAddresses []types.AddressInfo
 	for i := range states.Trace {
 		trace := states.Trace[i]
 
@@ -194,7 +194,7 @@ func buildTransactions(states *api.ComputeStateOutput) (*[]*types.Transaction, *
 			continue
 		}
 
-		var operations []*types.Operation
+		var operations []*rosettaTypes.Operation
 
 		// Analyze full trace recursively
 		parser.ProcessTrace(&trace.ExecutionTrace, &operations, &discoveredAddresses)
@@ -206,8 +206,8 @@ func buildTransactions(states *api.ComputeStateOutput) (*[]*types.Transaction, *
 					trace.GasCost.TotalCost.Neg().String(), opStatus, false, nil)
 			}
 
-			transactions = append(transactions, &types.Transaction{
-				TransactionIdentifier: &types.TransactionIdentifier{
+			transactions = append(transactions, &rosettaTypes.Transaction{
+				TransactionIdentifier: &rosettaTypes.TransactionIdentifier{
 					Hash: trace.MsgCid.String(),
 				},
 				Operations: operations,
@@ -217,7 +217,7 @@ func buildTransactions(states *api.ComputeStateOutput) (*[]*types.Transaction, *
 	return &transactions, &discoveredAddresses
 }
 
-func getLotusStateCompute(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) (*api.ComputeStateOutput, *types.Error) {
+func getLotusStateCompute(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) (*api.ComputeStateOutput, *rosettaTypes.Error) {
 	defer rosetta.TimeTrack(time.Now(), "[Lotus]StateCompute")
 
 	// StateCompute includes the messages at height N-1.
@@ -232,7 +232,7 @@ func getLotusStateCompute(ctx context.Context, node *api.FullNode, tipSet *filTy
 // BlockTransaction implements the /block/transaction endpoint.
 func (s *BlockAPIService) BlockTransaction(
 	ctx context.Context,
-	request *types.BlockTransactionRequest,
-) (*types.BlockTransactionResponse, *types.Error) {
+	request *rosettaTypes.BlockTransactionRequest,
+) (*rosettaTypes.BlockTransactionResponse, *rosettaTypes.Error) {
 	return nil, rosetta.ErrNotImplemented
 }

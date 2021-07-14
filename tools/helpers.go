@@ -1,13 +1,13 @@
 package tools
 
 import (
-	"fmt"
-	"github.com/coinbase/rosetta-sdk-go/types"
+	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/go-address"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	methods "github.com/filecoin-project/specs-actors/v5/actors/builtin"
 	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 	"reflect"
 )
@@ -47,7 +47,7 @@ func GetActorNameFromAddress(address address.Address) string {
 	return rosetta.GetActorNameFromCid(actorCode)
 }
 
-func GetMethodName(msg *filTypes.Message) (string, *types.Error) {
+func GetMethodName(msg *filTypes.Message) (string, *rosettaTypes.Error) {
 
 	if msg == nil {
 		return "", rosetta.BuildError(rosetta.ErrMalformedValue, nil, true)
@@ -105,9 +105,9 @@ func GetMethodName(msg *filTypes.Message) (string, *types.Error) {
 	return methodName, nil
 }
 
-func GetActorAddressInfo(add address.Address) (database.AddressInfo, error) {
+func GetActorAddressInfo(add address.Address) (types.AddressInfo, error) {
 
-	var addInfo database.AddressInfo
+	var addInfo types.AddressInfo
 
 	isRobust, err := database.IsRobustAddress(add)
 	if err != nil {
@@ -133,10 +133,7 @@ func GetActorAddressInfo(add address.Address) (database.AddressInfo, error) {
 		rosetta.Logger.Error("could not get actor code from address. Err:", err.Error())
 	}
 	addInfo.ActorCid = actorCode
-
-	if addInfo.Robust != "" && addInfo.Short != "" {
-		fmt.Println(addInfo, isRobust)
-	}
+	addInfo.ActorType = rosetta.GetActorNameFromCid(actorCode)
 
 	return addInfo, nil
 }
