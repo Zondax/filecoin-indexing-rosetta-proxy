@@ -133,7 +133,10 @@ func GetActorAddressInfo(add address.Address) (database.AddressInfo, error) {
 		rosetta.Logger.Error("could not get actor code from address. Err:", err.Error())
 	}
 	addInfo.ActorCid = actorCode
-	fmt.Println(addInfo)
+
+	if addInfo.Robust != "" && addInfo.Short != "" {
+		fmt.Println(addInfo, isRobust)
+	}
 
 	return addInfo, nil
 }

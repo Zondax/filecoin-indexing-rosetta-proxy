@@ -8,7 +8,6 @@ import (
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/ipfs/go-cid"
 	cmap "github.com/orcaman/concurrent-map"
-	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 )
 
 var ActorsDB Database
@@ -22,13 +21,14 @@ type AddressInfo struct {
 	ActorCid cid.Cid
 }
 
-func (a AddressInfo) GetAddressForActorType() string {
-	switch rosetta.GetActorNameFromCid(a.ActorCid) {
-	case "multisig":
-		return a.Short
-	default:
+func (a AddressInfo) GetAddress() string {
+	if a.Robust != "" {
 		return a.Robust
 	}
+	if a.Short != "" {
+		return a.Short
+	}
+	return "unknown"
 }
 
 type Database interface {
@@ -36,8 +36,6 @@ type Database interface {
 	GetActorCode(robustAdd address.Address) (cid.Cid, error)
 	GetRobustAddress(shortAdd address.Address) (string, error)
 	GetShortAddress(robustAdd address.Address) (string, error)
-	StoreRobustShort(robust string, short string)
-	StoreShortRobust(short string, robust string)
 	StoreAddressInfo(info AddressInfo)
 }
 
@@ -85,17 +83,23 @@ func (m *Cache) GetRobustAddress(address address.Address) (string, error) {
 
 	// This is a short address, get the robust one
 	robustAdd, ok := m.shortRobustMap.Get(address.String())
-	if !ok {
-		var err error
-		// Get robust address from lotus
-		robustAdd, err = m.retrieveActorPubKeyFromLotus(address, false)
-		if err != nil {
-			return "", err
-		}
-		m.StoreShortRobust(address.String(), robustAdd.(string))
+	if ok {
+		return robustAdd.(string), nil
 	}
 
-	return robustAdd.(string), nil
+	// Address is not in cache, get robust address from lotus
+	robustAdd, err = m.retrieveActorPubKeyFromLotus(address, false)
+	if err != nil {
+		return "", err
+	}
+	// Must check here because if lotus cannot find the pair, it will return the same address as result
+	if robustAdd != address.String() {
+		m.StoreShortRobust(address.String(), robustAdd.(string))
+		m.StoreRobustShort(robustAdd.(string), address.String())
+		return robustAdd.(string), nil
+	}
+
+	return "", nil
 }
 
 func (m *Cache) GetShortAddress(address address.Address) (string, error) {
@@ -111,16 +115,25 @@ func (m *Cache) GetShortAddress(address address.Address) (string, error) {
 
 	// This is a robust address, get the short one
 	shortAdd, ok := m.robustShortMap.Get(address.String())
-	if !ok {
-		var err error
-		shortAdd, err = m.retrieveActorPubKeyFromLotus(address, true)
-		if err != nil {
-			return address.String(), err
-		}
-		m.StoreRobustShort(address.String(), shortAdd.(string))
+
+	if ok {
+		return shortAdd.(string), nil
 	}
 
-	return shortAdd.(string), nil
+	// Address is not in cache, get short address from lotus
+	shortAdd, err = m.retrieveActorPubKeyFromLotus(address, true)
+	if err != nil {
+		return address.String(), err
+	}
+
+	// Must check here because if lotus cannot find the pair, it will return the same address as result
+	if shortAdd != address.String() {
+		m.StoreRobustShort(address.String(), shortAdd.(string))
+		m.StoreShortRobust(shortAdd.(string), address.String())
+		return shortAdd.(string), nil
+	}
+
+	return "", nil
 }
 
 func (m *Cache) StoreRobustShort(robust string, short string) {

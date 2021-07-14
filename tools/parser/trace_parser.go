@@ -14,6 +14,14 @@ import (
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 )
 
+func appendAddressInfo(arr *[]database.AddressInfo, info ...database.AddressInfo) {
+	for _, i := range info {
+		if i.Robust != "" && i.Short != "" {
+			*arr = append(*arr, i)
+		}
+	}
+}
+
 func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*types.Operation, addresses *[]database.AddressInfo) {
 
 	if trace.Msg == nil {
@@ -31,11 +39,9 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*types.Operation
 	if err1 != nil || err2 != nil {
 		rosetta.Logger.Error("could not retrieve one or both pubkeys for addresses:",
 			trace.Msg.From.String(), trace.Msg.To.String())
-		return
 	}
 
-	*addresses = append(*addresses, fromAdd)
-	*addresses = append(*addresses, toAdd)
+	appendAddressInfo(addresses, fromAdd, toAdd)
 
 	if tools.IsOpSupported(baseMethod) {
 		opStatus := rosetta.OperationStatusFailed
@@ -46,20 +52,20 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*types.Operation
 		switch baseMethod {
 		case "Send", "AddBalance":
 			{
-				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddressForActorType(),
+				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
 					trace.Msg.Value.Neg().String(), opStatus, false, nil)
-				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddressForActorType(),
+				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
 					trace.Msg.Value.String(), opStatus, true, nil)
 			}
 		case "Exec":
 			{
-				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddressForActorType(),
+				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
 					trace.Msg.Value.Neg().String(), opStatus, false, nil)
-				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddressForActorType(),
+				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
 					trace.Msg.Value.String(), opStatus, true, nil)
 
 				// Check if this Exec contains actor creation event
-				createdActor, err := checkActorCreated(trace.Msg, trace.MsgRct)
+				createdActor, err := searchForActorCreated(trace.Msg, trace.MsgRct)
 				if err != nil {
 					rosetta.Logger.Errorf("Could not parse Exec params, err: %v", err)
 					break
@@ -70,8 +76,9 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*types.Operation
 					break
 				}
 
-				*addresses = append(*addresses, *createdActor)
-				// Check if the created actor is of multisig type and it was also funded
+				appendAddressInfo(addresses, *createdActor)
+
+				// Check if the created actor is of multisig type and if it was also funded
 				if rosetta.GetActorNameFromCid(createdActor.ActorCid) == "multisig" &&
 					!trace.Msg.Value.NilOrZero() {
 					from := toAdd.Short
@@ -91,9 +98,9 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*types.Operation
 					break
 				}
 
-				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddressForActorType(),
+				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
 					"0", opStatus, false, &params)
-				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddressForActorType(),
+				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
 					"0", opStatus, true, &params)
 			}
 		case "SwapSigner", "AddSigner", "RemoveSigner":
@@ -105,16 +112,16 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*types.Operation
 						switch baseMethod {
 						case "SwapSigner":
 							{
-								*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddressForActorType(),
+								*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
 									"0", opStatus, false, &paramsMap)
-								*operations = AppendOp(*operations, baseMethod, toAdd.GetAddressForActorType(),
+								*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
 									"0", opStatus, true, &paramsMap)
 							}
 						case "AddSigner", "RemoveSigner":
 							{
-								*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddressForActorType(),
+								*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
 									"0", opStatus, false, &paramsMap)
-								*operations = AppendOp(*operations, baseMethod, toAdd.GetAddressForActorType(),
+								*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
 									"0", opStatus, true, &paramsMap)
 							}
 						}
@@ -127,16 +134,16 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*types.Operation
 		case "AwardBlockReward", "ApplyRewards", "OnDeferredCronEvent",
 			"PreCommitSector", "ProveCommitSector", "SubmitWindowedPoSt":
 			{
-				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddressForActorType(),
+				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
 					trace.Msg.Value.Neg().String(), opStatus, false, nil)
-				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddressForActorType(),
+				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
 					trace.Msg.Value.String(), opStatus, true, nil)
 			}
 		case "Approve", "Cancel":
 			{
-				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddressForActorType(),
+				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
 					trace.Msg.Value.Neg().String(), opStatus, false, nil)
-				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddressForActorType(),
+				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
 					trace.Msg.Value.String(), opStatus, true, nil)
 			}
 		}
@@ -148,7 +155,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*types.Operation
 	}
 }
 
-func checkActorCreated(msg *filTypes.Message, receipt *filTypes.MessageReceipt) (*database.AddressInfo, error) {
+func searchForActorCreated(msg *filTypes.Message, receipt *filTypes.MessageReceipt) (*database.AddressInfo, error) {
 
 	toAddressInfo, err := tools.GetActorAddressInfo(msg.To)
 	if err != nil {
