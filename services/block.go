@@ -14,12 +14,18 @@ import (
 	"time"
 )
 
-// LotusCallTimeOut TimeOut for RPC Lotus calls
-const LotusCallTimeOut = 60 * 4 * time.Second
+const (
+	// LotusCallTimeOut TimeOut for RPC Lotus calls
+	LotusCallTimeOut = 60 * 4 * time.Second
 
-// BlockCIDsKey is the name of the key in the Metadata map inside a
-// BlockResponse that specifies blocks' CIDs inside a TipSet.
-const BlockCIDsKey = "blockCIDs"
+	// BlockCIDsKey is the name of the key in the Metadata map inside a
+	// BlockResponse that specifies blocks' CIDs inside a TipSet.
+	BlockCIDsKey = "blockCIDs"
+
+	// DiscoveredAddressesKey is the name of the key in the Metadata map inside a
+	// BlockResponse that specifies the AddressInfo of actors that participated on transactions.
+	DiscoveredAddressesKey = "DiscoveredAddresses"
+)
 
 // BlockAPIService implements the server.BlockAPIServicer interface.
 type BlockAPIService struct {
@@ -130,7 +136,7 @@ func (s *BlockAPIService) Block(
 
 	// Build transactions data
 	var transactions *[]*rosettaTypes.Transaction
-	var discoveredAddresses *[]types.AddressInfo
+	var discoveredAddresses *types.AddressInfoMap
 	if requestedHeight > 1 {
 		states, err := getLotusStateCompute(ctx, &s.node, tipSet)
 		if err != nil {
@@ -146,7 +152,9 @@ func (s *BlockAPIService) Block(
 		blockCIDs = append(blockCIDs, cid.String())
 	}
 	md[BlockCIDsKey] = blockCIDs
-	md["DiscoveredAddresses"] = discoveredAddresses
+	if discoveredAddresses != nil {
+		md[DiscoveredAddressesKey] = *discoveredAddresses
+	}
 
 	hashTipSet, err := rosetta.BuildTipSetKeyHash(tipSet.Key())
 	if err != nil {
@@ -182,11 +190,11 @@ func (s *BlockAPIService) Block(
 	return resp, nil
 }
 
-func buildTransactions(states *api.ComputeStateOutput) (*[]*rosettaTypes.Transaction, *[]types.AddressInfo) {
+func buildTransactions(states *api.ComputeStateOutput) (*[]*rosettaTypes.Transaction, *types.AddressInfoMap) {
 	defer rosetta.TimeTrack(time.Now(), "[Proxy]TraceAnalysis")
 
 	var transactions []*rosettaTypes.Transaction
-	var discoveredAddresses []types.AddressInfo
+	var discoveredAddresses = types.NewAddressInfoMap()
 	for i := range states.Trace {
 		trace := states.Trace[i]
 

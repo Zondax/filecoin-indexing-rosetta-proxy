@@ -105,35 +105,28 @@ func GetMethodName(msg *filTypes.Message) (string, *rosettaTypes.Error) {
 	return methodName, nil
 }
 
-func GetActorAddressInfo(add address.Address) (types.AddressInfo, error) {
+func GetActorAddressInfo(add address.Address) types.AddressInfo {
 
-	var addInfo types.AddressInfo
-
-	isRobust, err := database.IsRobustAddress(add)
+	var (
+		addInfo types.AddressInfo
+		err     error
+	)
+	addInfo.Robust, err = database.ActorsDB.GetRobustAddress(add)
 	if err != nil {
-		return addInfo, err
+		rosetta.Logger.Errorf("could not get robust address for %s. Err: %v", add.String(), err.Error())
 	}
 
-	if isRobust {
-		addInfo.Robust = add.String()
-		addInfo.Short, err = database.ActorsDB.GetShortAddress(add)
-		if err != nil {
-			rosetta.Logger.Errorf("could not get short address for %s. Err: %v", add.String(), err.Error())
-		}
-	} else {
-		addInfo.Short = add.String()
-		addInfo.Robust, err = database.ActorsDB.GetRobustAddress(add)
-		if err != nil {
-			rosetta.Logger.Errorf("could not get robust address for %s. Err: %v", add.String(), err.Error())
-		}
+	addInfo.Short, err = database.ActorsDB.GetShortAddress(add)
+	if err != nil {
+		rosetta.Logger.Errorf("could not get short address for %s. Err: %v", add.String(), err.Error())
 	}
 
-	actorCode, err := database.ActorsDB.GetActorCode(add)
+	addInfo.ActorCid, err = database.ActorsDB.GetActorCode(add)
 	if err != nil {
 		rosetta.Logger.Error("could not get actor code from address. Err:", err.Error())
+	} else {
+		addInfo.ActorType = rosetta.GetActorNameFromCid(addInfo.ActorCid)
 	}
-	addInfo.ActorCid = actorCode
-	addInfo.ActorType = rosetta.GetActorNameFromCid(actorCode)
 
-	return addInfo, nil
+	return addInfo
 }

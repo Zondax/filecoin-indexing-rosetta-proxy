@@ -23,30 +23,29 @@ type Database interface {
 
 // Cache In-memory database
 type Cache struct {
-	robustCidMap   cmap.ConcurrentMap
+	shortCidMap    cmap.ConcurrentMap
 	robustShortMap cmap.ConcurrentMap
 	shortRobustMap cmap.ConcurrentMap
 	Node           *api.FullNode
 }
 
 func (m *Cache) NewImpl(node *api.FullNode) {
-	m.robustCidMap = cmap.New()
+	m.shortCidMap = cmap.New()
 	m.robustShortMap = cmap.New()
 	m.shortRobustMap = cmap.New()
 	m.Node = node
 }
 
 func (m *Cache) GetActorCode(address address.Address) (cid.Cid, error) {
-	robustAdd, _ := m.GetRobustAddress(address)
-
-	code, ok := m.robustCidMap.Get(robustAdd)
+	shortAddress, _ := m.GetShortAddress(address)
+	code, ok := m.shortCidMap.Get(shortAddress)
 	if !ok {
 		var err error
 		code, err = m.retrieveActorFromLotus(address)
 		if err != nil {
 			return cid.Cid{}, err
 		}
-		m.storeActorCode(robustAdd, code.(cid.Cid))
+		m.storeActorCode(shortAddress, code.(cid.Cid))
 	}
 
 	return code.(cid.Cid), nil
@@ -75,13 +74,9 @@ func (m *Cache) GetRobustAddress(address address.Address) (string, error) {
 		return "", err
 	}
 	// Must check here because if lotus cannot find the pair, it will return the same address as result
-	if robustAdd != address.String() {
-		m.StoreShortRobust(address.String(), robustAdd.(string))
-		m.StoreRobustShort(robustAdd.(string), address.String())
-		return robustAdd.(string), nil
-	}
-
-	return "", nil
+	m.StoreShortRobust(address.String(), robustAdd.(string))
+	m.StoreRobustShort(robustAdd.(string), address.String())
+	return robustAdd.(string), nil
 }
 
 func (m *Cache) GetShortAddress(address address.Address) (string, error) {
@@ -109,13 +104,9 @@ func (m *Cache) GetShortAddress(address address.Address) (string, error) {
 	}
 
 	// Must check here because if lotus cannot find the pair, it will return the same address as result
-	if shortAdd != address.String() {
-		m.StoreRobustShort(address.String(), shortAdd.(string))
-		m.StoreShortRobust(shortAdd.(string), address.String())
-		return shortAdd.(string), nil
-	}
-
-	return "", nil
+	m.StoreRobustShort(address.String(), shortAdd.(string))
+	m.StoreShortRobust(shortAdd.(string), address.String())
+	return shortAdd.(string), nil
 }
 
 func (m *Cache) StoreRobustShort(robust string, short string) {
@@ -132,8 +123,8 @@ func (m Cache) StoreAddressInfo(info types.AddressInfo) {
 	m.storeActorCode(info.Robust, info.ActorCid)
 }
 
-func (m *Cache) storeActorCode(robustAddress string, cid cid.Cid) {
-	m.robustCidMap.Set(robustAddress, cid)
+func (m *Cache) storeActorCode(shortAddress string, cid cid.Cid) {
+	m.shortCidMap.Set(shortAddress, cid)
 }
 
 func (m *Cache) retrieveActorFromLotus(add address.Address) (cid.Cid, error) {

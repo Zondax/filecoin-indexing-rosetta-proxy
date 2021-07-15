@@ -13,6 +13,23 @@ type AddressInfo struct {
 	ActorType string
 }
 
+type AddressInfoMap map[string]AddressInfo
+
+func NewAddressInfoMap() AddressInfoMap {
+	return make(AddressInfoMap)
+}
+
+type MinerInfo struct {
+	// Short is the miner's address in 'short' format
+	Short string
+	// Robust is the miner's address in 'robust' format
+	Robust string
+	// Owner is the owner address of this miner
+	Owner string
+	// Worker is the worker address of this miner
+	Worker string
+}
+
 func (a AddressInfo) GetAddress() string {
 	if a.Robust != "" {
 		return a.Robust

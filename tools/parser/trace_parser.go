@@ -1,29 +1,25 @@
 package parser
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
-	"github.com/filecoin-project/lotus/chain/actors/builtin"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
-	initActor "github.com/filecoin-project/specs-actors/v4/actors/builtin/init"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
-	filLib "github.com/zondax/rosetta-filecoin-lib"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 )
 
-func appendAddressInfo(arr *[]types.AddressInfo, info ...types.AddressInfo) {
+func appendAddressInfo(addressMap *types.AddressInfoMap, info ...types.AddressInfo) {
 	for _, i := range info {
-		if i.Robust != "" && i.Short != "" {
-			*arr = append(*arr, i)
+		if i.Robust != "" && i.Short != "" && i.Robust != i.Short {
+			if _, ok := (*addressMap)[i.Short]; !ok {
+				(*addressMap)[i.Short] = i
+			}
 		}
 	}
 }
 
-func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Operation, addresses *[]types.AddressInfo) {
+func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Operation, addresses *types.AddressInfoMap) {
 
 	if trace.Msg == nil {
 		return
@@ -35,13 +31,8 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 		baseMethod = "unknown"
 	}
 
-	fromAdd, err1 := tools.GetActorAddressInfo(trace.Msg.From)
-	toAdd, err2 := tools.GetActorAddressInfo(trace.Msg.To)
-	if err1 != nil || err2 != nil {
-		rosetta.Logger.Error("could not retrieve one or both pubkeys for addresses:",
-			trace.Msg.From.String(), trace.Msg.To.String())
-	}
-
+	fromAdd := tools.GetActorAddressInfo(trace.Msg.From)
+	toAdd := tools.GetActorAddressInfo(trace.Msg.To)
 	appendAddressInfo(addresses, fromAdd, toAdd)
 
 	if tools.IsOpSupported(baseMethod) {
@@ -58,6 +49,16 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
 					trace.Msg.Value.String(), opStatus, true, nil)
 			}
+
+		case "CreateMiner":
+			{
+				createdActor, err := searchForActorCreation(trace.Msg, trace.MsgRct)
+				if err != nil {
+					rosetta.Logger.Errorf("Could not parse 'CreateMiner' params, err: %v", err)
+					break
+				}
+				appendAddressInfo(addresses, *createdActor)
+			}
 		case "Exec":
 			{
 				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
@@ -66,7 +67,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 					trace.Msg.Value.String(), opStatus, true, nil)
 
 				// Check if this Exec contains actor creation event
-				createdActor, err := searchForActorCreated(trace.Msg, trace.MsgRct)
+				createdActor, err := searchForActorCreation(trace.Msg, trace.MsgRct)
 				if err != nil {
 					rosetta.Logger.Errorf("Could not parse Exec params, err: %v", err)
 					break
@@ -93,7 +94,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 			}
 		case "Propose":
 			{
-				params, err := parseProposeParams(trace.Msg)
+				params, err := ParseProposeParams(trace.Msg)
 				if err != nil {
 					rosetta.Logger.Error("Could not parse message params for", baseMethod)
 					break
@@ -106,7 +107,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 			}
 		case "SwapSigner", "AddSigner", "RemoveSigner":
 			{
-				params, err := parseMsigParams(trace.Msg)
+				params, err := ParseMsigParams(trace.Msg)
 				if err == nil {
 					var paramsMap map[string]interface{}
 					if err := json.Unmarshal([]byte(params), &paramsMap); err == nil {
@@ -156,19 +157,14 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 	}
 }
 
-func searchForActorCreated(msg *filTypes.Message, receipt *filTypes.MessageReceipt) (*types.AddressInfo, error) {
+func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageReceipt) (*types.AddressInfo, error) {
 
-	toAddressInfo, err := tools.GetActorAddressInfo(msg.To)
-	if err != nil {
-		return nil, err
-	}
-
-	switch rosetta.GetActorNameFromCid(toAddressInfo.ActorCid) {
+	toAddressInfo := tools.GetActorAddressInfo(msg.To)
+	actorName := rosetta.GetActorNameFromCid(toAddressInfo.ActorCid)
+	switch actorName {
 	case "init":
 		{
-			reader := bytes.NewReader(msg.Params)
-			var params initActor.ExecParams
-			err := params.UnmarshalCBOR(reader)
+			params, err := ParseInitActorExecParams(msg.Params)
 			if err != nil {
 				return nil, err
 			}
@@ -176,86 +172,37 @@ func searchForActorCreated(msg *filTypes.Message, receipt *filTypes.MessageRecei
 			switch createdActorName {
 			case "multisig", "paymentchannel":
 				{
-					reader = bytes.NewReader(receipt.Return)
-					var execReturn initActor.ExecReturn
-					err = execReturn.UnmarshalCBOR(reader)
+					execReturn, err := ParseExecReturn(receipt.Return)
 					if err != nil {
 						return nil, err
 					}
 
-					info := types.AddressInfo{
-						Short:    execReturn.IDAddress.String(),
-						Robust:   execReturn.RobustAddress.String(),
-						ActorCid: params.CodeCID,
-					}
-					return &info, nil
+					return &types.AddressInfo{
+						Short:     execReturn.IDAddress.String(),
+						Robust:    execReturn.RobustAddress.String(),
+						ActorCid:  params.CodeCID,
+						ActorType: createdActorName,
+					}, nil
 				}
 			default:
 				return nil, nil
 			}
 		}
+	case "storagepower":
+		{
+			execReturn, err := ParseExecReturn(receipt.Return)
+			if err != nil {
+				return nil, err
+			}
+			return &types.AddressInfo{
+				Short:     execReturn.IDAddress.String(),
+				Robust:    execReturn.RobustAddress.String(),
+				ActorType: "miner",
+			}, nil
+		}
 	default:
 		return nil, nil
 	}
-}
-
-func parseProposeParams(msg *filTypes.Message) (map[string]interface{}, error) {
-	r := &filLib.RosettaConstructionFilecoin{}
-	var params map[string]interface{}
-	msgSerial, err := msg.MarshalJSON()
-	if err != nil {
-		rosetta.Logger.Error("Could not parse params. Cannot serialize lotus message:", err.Error())
-		return params, err
-	}
-
-	actorCode, err := database.ActorsDB.GetActorCode(msg.To)
-	if err != nil {
-		return params, err
-	}
-
-	if !builtin.IsMultisigActor(actorCode) {
-		return params, fmt.Errorf("this id doesn't correspond to a multisig actor")
-	}
-
-	innerMethod, parsedParams, err := r.ParseProposeTxParams(string(msgSerial), actorCode)
-	if err != nil {
-		rosetta.Logger.Error("Could not parse params. ParseProposeTxParams returned with error:", err.Error())
-		return params, err
-	}
-
-	err = json.Unmarshal([]byte(parsedParams), &params)
-	if err != nil {
-		return params, err
-	}
-
-	params["Method"] = innerMethod
-	return params, nil
-}
-
-func parseMsigParams(msg *filTypes.Message) (string, error) {
-	r := &filLib.RosettaConstructionFilecoin{}
-	msgSerial, err := msg.MarshalJSON()
-	if err != nil {
-		rosetta.Logger.Error("Could not parse params. Cannot serialize lotus message:", err.Error())
-		return "", err
-	}
-
-	actorCode, err := database.ActorsDB.GetActorCode(msg.To)
-	if err != nil {
-		return "", err
-	}
-
-	if !builtin.IsMultisigActor(actorCode) {
-		return "", fmt.Errorf("this id doesn't correspond to a multisig actor")
-	}
-
-	parsedParams, err := r.ParseParamsMultisigTx(string(msgSerial), actorCode)
-	if err != nil {
-		rosetta.Logger.Error("Could not parse params. ParseParamsMultisigTx returned with error:", err.Error())
-		return "", err
-	}
-
-	return parsedParams, nil
 }
 
 func AppendOp(ops []*rosettaTypes.Operation, opType string, account string, amount string, status string, relateOp bool, metadata *map[string]interface{}) []*rosettaTypes.Operation {
