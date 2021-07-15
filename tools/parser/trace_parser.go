@@ -10,6 +10,9 @@ import (
 )
 
 func appendAddressInfo(addressMap *types.AddressInfoMap, info ...types.AddressInfo) {
+	if addressMap == nil {
+		return
+	}
 	for _, i := range info {
 		if i.Robust != "" && i.Short != "" && i.Robust != i.Short {
 			if _, ok := (*addressMap)[i.Short]; !ok {

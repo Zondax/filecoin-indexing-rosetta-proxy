@@ -13,6 +13,12 @@ import (
 
 var ActorsDB Database
 
+func SetupActorsDatabase(api *api.FullNode) {
+	var db Database = &Cache{}
+	db.NewImpl(api)
+	ActorsDB = db
+}
+
 type Database interface {
 	NewImpl(*api.FullNode)
 	GetActorCode(robustAdd address.Address) (cid.Cid, error)

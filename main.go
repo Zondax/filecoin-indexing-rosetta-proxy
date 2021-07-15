@@ -156,12 +156,6 @@ func connectAPI(addr string, token string) (api.FullNode, jsonrpc.ClientCloser, 
 	return lotusAPI, clientCloser, nil
 }
 
-func setupActorsDatabase(api *api.FullNode) {
-	var db database.Database = &database.Cache{}
-	db.NewImpl(api)
-	database.ActorsDB = db
-}
-
 func main() {
 	startLogger("info")
 	logVersionsInfo()
@@ -193,7 +187,7 @@ func main() {
 	}
 	defer clientCloser()
 
-	setupActorsDatabase(&lotusAPI)
+	database.SetupActorsDatabase(&lotusAPI)
 
 	ctx := context.Background()
 	err = startRosettaRPC(ctx, lotusAPI)
