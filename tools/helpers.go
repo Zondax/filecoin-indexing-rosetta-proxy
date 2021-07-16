@@ -12,6 +12,8 @@ import (
 	"reflect"
 )
 
+const UnknownStr = "unknown"
+
 func IsOpSupported(op string) bool {
 	supported, ok := SupportedOperations[op]
 	if ok && supported {
@@ -42,7 +44,7 @@ func GetActorNameFromAddress(address address.Address) string {
 	var err error
 	actorCode, err = database.ActorsDB.GetActorCode(address)
 	if err != nil {
-		return "unknown"
+		return UnknownStr
 	}
 	return rosetta.GetActorNameFromCid(actorCode)
 }
@@ -88,7 +90,7 @@ func GetMethodName(msg *filTypes.Message) (string, *rosettaTypes.Error) {
 	case "verifiedregistry":
 		method = methods.MethodsVerifiedRegistry
 	default:
-		return "unknown", nil
+		return UnknownStr, nil
 	}
 
 	val := reflect.Indirect(reflect.ValueOf(method))
@@ -98,7 +100,7 @@ func GetMethodName(msg *filTypes.Message) (string, *rosettaTypes.Error) {
 	}
 
 	if val.Type().NumField() <= idx {
-		return "unknown", nil
+		return UnknownStr, nil
 	}
 
 	methodName := val.Type().Field(idx).Name
