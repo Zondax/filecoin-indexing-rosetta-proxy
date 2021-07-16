@@ -7,7 +7,7 @@ var (
 	GitRevision       = "Unknown"
 
 	// RosettaServerPort ServerPort to be injected on build time
-	RosettaServerPort = "8081"
+	RosettaServerPort = "8080"
 
 	// Other configs
 	RetryConnectAttempts = "1000000"
