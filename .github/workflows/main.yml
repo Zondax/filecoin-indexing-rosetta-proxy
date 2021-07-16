@@ -1,0 +1,57 @@
+name: Build
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16'
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -yy apt-utils
+          sudo apt-get install -yy curl gcc git bzr jq pkg-config mesa-opencl-icd ocl-icd-opencl-dev hwloc libhwloc-dev
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path --default-toolchain none -y
+      - name: Build
+        run: |
+          export PATH=~/.cargo/bin:$PATH
+          make build
+
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16'
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -yy apt-utils
+          sudo apt-get install -yy curl gcc git bzr jq pkg-config mesa-opencl-icd ocl-icd-opencl-dev hwloc libhwloc-dev
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path --default-toolchain none -y
+      - run: make build
+      - name: ModTidy check
+        run: make check-modtidy
+      - name: Lint check
+        run: |
+          export PATH=~/.cargo/bin:$PATH
+          export PATH=$PATH:$(go env GOPATH)/bin
+          make install_lint
+          make lint
