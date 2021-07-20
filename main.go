@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/Zondax/zindexer/connections/data_store"
+	"github.com/spf13/viper"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/services"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/parser"
 	"net/http"
 	"os"
 	"os/signal"
@@ -59,6 +62,7 @@ func newBlockchainRouter(
 	network *types.NetworkIdentifier,
 	asserter *rosettaAsserter.Asserter,
 	api api.FullNode,
+	traceRetriever *parser.TraceRetriever,
 ) http.Handler {
 	accountAPIService := rosetta.NewAccountAPIService(network, &api)
 	accountAPIController := server.NewAccountAPIController(
@@ -72,7 +76,7 @@ func newBlockchainRouter(
 		asserter,
 	)
 
-	blockAPIService := services.NewBlockAPIService(network, &api)
+	blockAPIService := services.NewBlockAPIService(network, &api, traceRetriever)
 	blockAPIController := server.NewBlockAPIController(
 		blockAPIService,
 		asserter,
@@ -114,7 +118,19 @@ func startRosettaRPC(ctx context.Context, api api.FullNode) error {
 		rosetta.Logger.Fatal(err)
 	}
 
-	router := newBlockchainRouter(network, asserter, api)
+	// Build trace retriever
+	retriever := parser.NewTraceRetriever(
+		viper.GetBool("use_cached_traces"),
+		viper.GetString("trace_bucket"),
+		data_store.DataStoreConfig{
+			Url:      viper.GetString("data_store.url"),
+			User:     viper.GetString("data_store.user"),
+			Password: viper.GetString("data_store.password"),
+			Service:  data_store.MinIOStorage,
+		},
+	)
+
+	router := newBlockchainRouter(network, asserter, api, retriever)
 	loggedRouter := server.LoggerMiddleware(router)
 	corsRouter := server.CorsMiddleware(loggedRouter)
 	server := &http.Server{Addr: fmt.Sprintf(":%d", ServerPort), Handler: corsRouter}
@@ -166,9 +182,16 @@ func main() {
 	rosetta.Logger.Info("Starting Rosetta Proxy")
 	rosetta.Logger.Infof("LOTUS_RPC_URL: %s", addr)
 
+	viper.SetConfigName("config")
+	viper.AddConfigPath(".")
+	viper.SetDefault("use_cached_traces", false)
+	err := viper.ReadInConfig()
+	if err != nil {
+		panic(fmt.Errorf("Fatal error config file: %w \n", err))
+	}
+
 	var lotusAPI api.FullNode
 	var clientCloser jsonrpc.ClientCloser
-	var err error
 
 	retryAttempts, _ := strconv.Atoi(rosetta.RetryConnectAttempts)
 

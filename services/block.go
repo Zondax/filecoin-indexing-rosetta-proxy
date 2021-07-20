@@ -29,15 +29,17 @@ const (
 
 // BlockAPIService implements the server.BlockAPIServicer interface.
 type BlockAPIService struct {
-	network *rosettaTypes.NetworkIdentifier
-	node    api.FullNode
+	network        *rosettaTypes.NetworkIdentifier
+	node           api.FullNode
+	traceRetriever *parser.TraceRetriever
 }
 
 // NewBlockAPIService creates a new instance of a BlockAPIService.
-func NewBlockAPIService(network *rosettaTypes.NetworkIdentifier, api *api.FullNode) server.BlockAPIServicer {
+func NewBlockAPIService(network *rosettaTypes.NetworkIdentifier, api *api.FullNode, retriever *parser.TraceRetriever) server.BlockAPIServicer {
 	return &BlockAPIService{
-		network: network,
-		node:    *api,
+		network:        network,
+		node:           *api,
+		traceRetriever: retriever,
 	}
 }
 
@@ -138,7 +140,7 @@ func (s *BlockAPIService) Block(
 	var transactions *[]*rosettaTypes.Transaction
 	var discoveredAddresses *types.AddressInfoMap
 	if requestedHeight > 1 {
-		states, err := getLotusStateCompute(ctx, &s.node, tipSet)
+		states, err := s.traceRetriever.GetStateCompute(ctx, &s.node, tipSet)
 		if err != nil {
 			return nil, err
 		}
@@ -223,18 +225,6 @@ func buildTransactions(states *api.ComputeStateOutput) (*[]*rosettaTypes.Transac
 		}
 	}
 	return &transactions, &discoveredAddresses
-}
-
-func getLotusStateCompute(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) (*api.ComputeStateOutput, *rosettaTypes.Error) {
-	defer rosetta.TimeTrack(time.Now(), "[Lotus]StateCompute")
-
-	// StateCompute includes the messages at height N-1.
-	// So, we're getting the traces of the messages created at N-1, executed at N
-	states, err := (*node).StateCompute(ctx, tipSet.Height(), nil, tipSet.Key())
-	if err != nil {
-		return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, err, true)
-	}
-	return states, nil
 }
 
 // BlockTransaction implements the /block/transaction endpoint.
