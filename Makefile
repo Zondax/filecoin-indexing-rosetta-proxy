@@ -1,4 +1,4 @@
-PACKAGE := github.com/zondax/fielcoin-indexing-rosetta-proxy/main
+PACKAGE := github.com/zondax/filecoin-indexing-rosetta-proxy/tools
 REVISION := $(shell git rev-parse --short HEAD)
 ROSETTASDKVER := $(shell go list -m all | grep github.com/coinbase/rosetta-sdk-go | awk '{print $$2}')
 LOTUSVER := $(shell go list -m all | grep github.com/filecoin-project/lotus | awk '{print $$2}')
