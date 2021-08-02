@@ -3,10 +3,12 @@ package parser
 import (
 	"encoding/json"
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
+	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
+	"time"
 )
 
 func appendAddressInfo(addressMap *types.AddressInfoMap, info ...types.AddressInfo) {
@@ -20,6 +22,41 @@ func appendAddressInfo(addressMap *types.AddressInfoMap, info ...types.AddressIn
 			}
 		}
 	}
+}
+
+func BuildTransactions(states *api.ComputeStateOutput) (*[]*rosettaTypes.Transaction, *types.AddressInfoMap) {
+	defer rosetta.TimeTrack(time.Now(), "[Proxy]TraceAnalysis")
+
+	var transactions []*rosettaTypes.Transaction
+	var discoveredAddresses = types.NewAddressInfoMap()
+	for i := range states.Trace {
+		trace := states.Trace[i]
+
+		if trace.Msg == nil {
+			continue
+		}
+
+		var operations []*rosettaTypes.Operation
+
+		// Analyze full trace recursively
+		ProcessTrace(&trace.ExecutionTrace, &operations, &discoveredAddresses)
+		if len(operations) > 0 {
+			// Add the corresponding "Fee" operation
+			if !trace.GasCost.TotalCost.Nil() {
+				opStatus := rosetta.OperationStatusOk
+				operations = AppendOp(operations, "Fee", trace.Msg.From.String(),
+					trace.GasCost.TotalCost.Neg().String(), opStatus, false, nil)
+			}
+
+			transactions = append(transactions, &rosettaTypes.Transaction{
+				TransactionIdentifier: &rosettaTypes.TransactionIdentifier{
+					Hash: trace.MsgCid.String(),
+				},
+				Operations: operations,
+			})
+		}
+	}
+	return &transactions, &discoveredAddresses
 }
 
 func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Operation, addresses *types.AddressInfoMap) {

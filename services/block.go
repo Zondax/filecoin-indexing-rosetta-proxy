@@ -144,7 +144,7 @@ func (s *BlockAPIService) Block(
 		if err != nil {
 			return nil, err
 		}
-		transactions, discoveredAddresses = buildTransactions(states)
+		transactions, discoveredAddresses = parser.BuildTransactions(states)
 	}
 
 	// Add block metadata
@@ -190,41 +190,6 @@ func (s *BlockAPIService) Block(
 	}
 
 	return resp, nil
-}
-
-func buildTransactions(states *api.ComputeStateOutput) (*[]*rosettaTypes.Transaction, *types.AddressInfoMap) {
-	defer rosetta.TimeTrack(time.Now(), "[Proxy]TraceAnalysis")
-
-	var transactions []*rosettaTypes.Transaction
-	var discoveredAddresses = types.NewAddressInfoMap()
-	for i := range states.Trace {
-		trace := states.Trace[i]
-
-		if trace.Msg == nil {
-			continue
-		}
-
-		var operations []*rosettaTypes.Operation
-
-		// Analyze full trace recursively
-		parser.ProcessTrace(&trace.ExecutionTrace, &operations, &discoveredAddresses)
-		if len(operations) > 0 {
-			// Add the corresponding "Fee" operation
-			if !trace.GasCost.TotalCost.Nil() {
-				opStatus := rosetta.OperationStatusOk
-				operations = parser.AppendOp(operations, "Fee", trace.Msg.From.String(),
-					trace.GasCost.TotalCost.Neg().String(), opStatus, false, nil)
-			}
-
-			transactions = append(transactions, &rosettaTypes.Transaction{
-				TransactionIdentifier: &rosettaTypes.TransactionIdentifier{
-					Hash: trace.MsgCid.String(),
-				},
-				Operations: operations,
-			})
-		}
-	}
-	return &transactions, &discoveredAddresses
 }
 
 // BlockTransaction implements the /block/transaction endpoint.
