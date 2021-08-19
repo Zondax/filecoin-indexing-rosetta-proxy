@@ -183,7 +183,7 @@ func main() {
 	rosetta.Logger.Infof("LOTUS_RPC_URL: %s", addr)
 
 	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
+	viper.AddConfigPath("/")
 	viper.SetDefault("use_cached_traces", false)
 	err := viper.ReadInConfig()
 	if err != nil {
