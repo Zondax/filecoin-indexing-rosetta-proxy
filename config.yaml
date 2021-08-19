@@ -1,7 +1,7 @@
 use_cached_traces: true
-trace_bucket: "filecoin"
+trace_bucket: <BUCKET_NAME>
 data_store:
-  user: "filecoin"
-  password: "fxWFaq7xrwG3f6y732Q44cuKxUorvN"
-  url: "filecoin.minio.pre.zondax.net"
+  user: <USER>
+  password: <PASSWORD>
+  url: <URL>
 
