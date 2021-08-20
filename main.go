@@ -184,6 +184,7 @@ func main() {
 
 	viper.SetConfigName("config")
 	viper.AddConfigPath("/")
+	viper.AddConfigPath(".")
 	viper.SetDefault("use_cached_traces", false)
 	err := viper.ReadInConfig()
 	if err != nil {
