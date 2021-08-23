@@ -69,6 +69,10 @@ func BuildFee(states *api.ComputeStateOutput) *[]types.TransactionFeeInfo {
 			continue
 		}
 
+		if trace.MsgRct.ExitCode.IsError() {
+			continue
+		}
+
 		baseMethod, err := tools.GetMethodName(trace.Msg)
 		if err != nil {
 			rosetta.Logger.Error("could not get method name. Error:", err.Message, err.Details)
