@@ -39,3 +39,20 @@ func (a AddressInfo) GetAddress() string {
 	}
 	return "unknown"
 }
+
+type TransactionFeeInfo struct {
+	// TxHash is the identifier for this transaction
+	TxHash string
+	// MethodName is the method requested to be executed
+	MethodName string
+	// TotalCost is the total fee payed by the sender. Expressed in [FIL]
+	TotalCost uint64
+	// GasUsage is the amount of GAS used to execute this transaction. Expressed in units of [GAS]
+	GasUsage uint64
+	// GasLimit is the maximum amount of gas that this transaction can use. Expressed in units of [GAS]
+	GasLimit int64
+	// GasPremium is the amount if FIL payed to the miner per unit of GAS. Expressed in [FIL/GAS]
+	GasPremium uint64
+	// BaseFeeBurn is this block's burned fee. Expressed in [FIL]
+	BaseFeeBurn uint64
+}

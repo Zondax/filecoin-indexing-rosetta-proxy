@@ -59,6 +59,42 @@ func BuildTransactions(states *api.ComputeStateOutput) (*[]*rosettaTypes.Transac
 	return &transactions, &discoveredAddresses
 }
 
+func BuildFee(states *api.ComputeStateOutput) *[]types.TransactionFeeInfo {
+	var fees []types.TransactionFeeInfo
+
+	for i := range states.Trace {
+		trace := states.Trace[i]
+
+		if trace.Msg == nil {
+			continue
+		}
+
+		baseMethod, err := tools.GetMethodName(trace.Msg)
+		if err != nil {
+			rosetta.Logger.Error("could not get method name. Error:", err.Message, err.Details)
+			continue
+		}
+
+		if !tools.IsOpSupported(baseMethod) {
+			continue
+		}
+
+		fee := types.TransactionFeeInfo{
+			TxHash:      trace.MsgCid.String(),
+			MethodName:  baseMethod,
+			TotalCost:   trace.GasCost.TotalCost.Uint64(),
+			GasUsage:    trace.GasCost.GasUsed.Uint64(),
+			GasLimit:    trace.Msg.GasLimit,
+			GasPremium:  trace.Msg.GasPremium.Uint64(),
+			BaseFeeBurn: trace.GasCost.BaseFeeBurn.Uint64(),
+		}
+
+		fees = append(fees, fee)
+	}
+
+	return &fees
+}
+
 func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Operation, addresses *types.AddressInfoMap) {
 
 	if trace.Msg == nil {
