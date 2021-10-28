@@ -105,6 +105,11 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 		return
 	}
 
+	opStatus := rosetta.OperationStatusFailed
+	if trace.MsgRct.ExitCode.IsSuccess() {
+		opStatus = rosetta.OperationStatusOk
+	}
+
 	baseMethod, err := tools.GetMethodName(trace.Msg)
 	if err != nil {
 		rosetta.Logger.Error("could not get method name. Error:", err.Message, err.Details)
@@ -116,11 +121,6 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 	appendAddressInfo(addresses, fromAdd, toAdd)
 
 	if tools.IsOpSupported(baseMethod) {
-		opStatus := rosetta.OperationStatusFailed
-		if trace.MsgRct.ExitCode.IsSuccess() {
-			opStatus = rosetta.OperationStatusOk
-		}
-
 		switch baseMethod {
 		case "Send", "AddBalance":
 			{
@@ -231,9 +231,12 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 		}
 	}
 
-	for i := range trace.Subcalls {
-		subTrace := trace.Subcalls[i]
-		ProcessTrace(&subTrace, operations, addresses)
+	// Only process sub-calls if the parent call was successfully executed
+	if opStatus == rosetta.OperationStatusOk {
+		for i := range trace.Subcalls {
+			subTrace := trace.Subcalls[i]
+			ProcessTrace(&subTrace, operations, addresses)
+		}
 	}
 }
 
