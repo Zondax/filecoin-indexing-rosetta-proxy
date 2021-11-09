@@ -122,14 +122,23 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 
 	if tools.IsOpSupported(baseMethod) {
 		switch baseMethod {
-		case "Send", "AddBalance":
+		case "AddBalance":
 			{
 				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
 					trace.Msg.Value.Neg().String(), opStatus, false, nil)
 				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
 					trace.Msg.Value.String(), opStatus, true, nil)
 			}
+		case "Send":
+			{
+				metadata := make(map[string]interface{})
+				metadata["Params"] = string(trace.Msg.Params)
 
+				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
+					trace.Msg.Value.Neg().String(), opStatus, false, &metadata)
+				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
+					trace.Msg.Value.String(), opStatus, true, &metadata)
+			}
 		case "CreateMiner":
 			{
 				createdActor, err := searchForActorCreation(trace.Msg, trace.MsgRct)
