@@ -60,21 +60,36 @@ func ParseProposeParams(msg *filTypes.Message) (map[string]interface{}, error) {
 	}
 
 	if !builtin.IsMultisigActor(actorCode) {
-		return params, fmt.Errorf("this id doesn't correspond to a multisig actor")
+		return params, fmt.Errorf("id %v (address %v) doesn't correspond to a multisig actor", actorCode, msg.To)
 	}
 
-	innerMethod, parsedParams, err := r.ParseProposeTxParams(string(msgSerial), actorCode)
+	parsedParams, err := r.ParseProposeTxParams(string(msgSerial))
 	if err != nil {
-		rosetta.Logger.Error("Could not parse params. ParseProposeTxParams returned with error:", err.Error())
+		rosetta.Logger.Errorf("Could not parse params. ParseProposeTxParams returned with error: %s", err.Error())
 		return params, err
 	}
 
-	err = json.Unmarshal([]byte(parsedParams), &params)
+	targetActorCode, err := database.ActorsDB.GetActorCode(parsedParams.To)
 	if err != nil {
 		return params, err
 	}
 
-	params["Method"] = innerMethod
+	targetMethod, err := r.GetProposedMethod(parsedParams, targetActorCode)
+	if err != nil {
+		return params, err
+	}
+
+	// We do this to turn multisig.ProposeParams into a map[string]interface{} with convenient types
+	jsonResponse, err := json.Marshal(parsedParams)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(jsonResponse, &params)
+	if err != nil {
+		return params, err
+	}
+
+	params["Method"] = targetMethod
 	return params, nil
 }
 
