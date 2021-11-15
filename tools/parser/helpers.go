@@ -63,7 +63,7 @@ func ParseProposeParams(msg *filTypes.Message) (map[string]interface{}, error) {
 		return params, fmt.Errorf("id %v (address %v) doesn't correspond to a multisig actor", actorCode, msg.To)
 	}
 
-	parsedParams, err := r.ParseProposeTxParams(string(msgSerial))
+	parsedParams, err := r.GetInnerProposeTxParams(string(msgSerial))
 	if err != nil {
 		rosetta.Logger.Errorf("Could not parse params. ParseProposeTxParams returned with error: %s", err.Error())
 		return params, err
