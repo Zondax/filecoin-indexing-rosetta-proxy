@@ -185,7 +185,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 			{
 				params, err := ParseProposeParams(trace.Msg)
 				if err != nil {
-					rosetta.Logger.Error("Could not parse message params for", baseMethod)
+					rosetta.Logger.Errorf("Could not parse message params for %v, error: %v", baseMethod, err.Error())
 					break
 				}
 

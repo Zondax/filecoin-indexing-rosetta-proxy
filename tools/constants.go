@@ -21,21 +21,28 @@ const (
 
 // SupportedOperations operations that will be parsed
 var SupportedOperations = map[string]bool{
-	"Send":                true, // Common
-	"Fee":                 true, // Common
-	"Exec":                true, // MethodsInit
-	"SwapSigner":          true, // MethodsMultisig
-	"AddSigner":           true, // MethodsMultisig
-	"RemoveSigner":        true, // MethodsMultisig
-	"Propose":             true, // MethodsMultisig
-	"Approve":             true, // MethodsMultisig
-	"Cancel":              true, // MethodsMultisig
-	"AwardBlockReward":    true, // MethodsReward
-	"OnDeferredCronEvent": true, // MethodsMiner
-	"PreCommitSector":     true, // MethodsMiner
-	"ProveCommitSector":   true, // MethodsMiner
-	"SubmitWindowedPoSt":  true, // MethodsMiner
-	"ApplyRewards":        true, // MethodsMiner
-	"CreateMiner":         true, // MethodsPower
-	"AddBalance":          true, // MethodsMarket
+	"Send":                   true, // Common
+	"Fee":                    true, // Common
+	"Exec":                   true, // MethodsInit
+	"SwapSigner":             true, // MethodsMultisig
+	"AddSigner":              true, // MethodsMultisig
+	"RemoveSigner":           true, // MethodsMultisig
+	"Propose":                true, // MethodsMultisig
+	"Approve":                true, // MethodsMultisig
+	"Cancel":                 true, // MethodsMultisig
+	"AwardBlockReward":       true, // MethodsReward
+	"OnDeferredCronEvent":    true, // MethodsMiner
+	"PreCommitSector":        true, // MethodsMiner
+	"ProveCommitSector":      true, // MethodsMiner
+	"SubmitWindowedPoSt":     true, // MethodsMiner
+	"ApplyRewards":           true, // MethodsMiner
+	"WithdrawBalance":        true, // MethodsMiner
+	"ChangeOwnerAddress":     true, // MethodsMiner
+	"ChangeWorkerAddress":    true, // MethodsMiner
+	"ConfirmUpdateWorkerKey": true, // MethodsMiner
+	"CreateMiner":            true, // MethodsPower
+	"AddBalance":             true, // MethodsMarket
+	"AddVerifiedClient":      true, // MethodsVerifiedRegistry
+	"AddVerifier":            true, // MethodsVerifiedRegistry
+	"RemoveVerifier":         true, // MethodsVerifiedRegistry
 }
