@@ -1968,8 +1968,8 @@ github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxt
 github.com/zondax/hid v0.9.0/go.mod h1:l5wttcP0jwtdLjqjMMWFVEE7d1zO0jvSPA9OPZxWpEM=
 github.com/zondax/ledger-go v0.12.1/go.mod h1:KatxXrVDzgWwbssUWsF5+cOJHXPvzQ09YSlzGNuhOEo=
 github.com/zondax/rosetta-filecoin-lib v1.1200.1/go.mod h1:FBwf5gSZQyFLyTiyYdp7sYKMmwxlf+Vhm3YtG2cLamk=
-github.com/zondax/rosetta-filecoin-lib v1.1200.2 h1:cs3t3rqIHWsHCiH1OXMDbqSMKbhJmtkQU0lQwK8+G4E=
-github.com/zondax/rosetta-filecoin-lib v1.1200.2/go.mod h1:FBwf5gSZQyFLyTiyYdp7sYKMmwxlf+Vhm3YtG2cLamk=
+github.com/zondax/rosetta-filecoin-lib v1.1200.3 h1:IgSx33RXyizmxRG/9OozOPaZR2J1otn2MoPIH6pjmGk=
+github.com/zondax/rosetta-filecoin-lib v1.1200.3/go.mod h1:FBwf5gSZQyFLyTiyYdp7sYKMmwxlf+Vhm3YtG2cLamk=
 github.com/zondax/rosetta-filecoin-proxy v1.1200.1 h1:XjBOpIwrWjB3oE6l6axWDHHNbBdbouVpR/5USJnR6F4=
 github.com/zondax/rosetta-filecoin-proxy v1.1200.1/go.mod h1:5Dzq1XzYSFMqHhXf2FUScfXELRNi1gkvss9AJ59CtEY=
 go.dedis.ch/fixbuf v1.0.3/go.mod h1:yzJMt34Wa5xD37V5RTdmp38cz3QhMagdGoem9anUalw=
