@@ -90,6 +90,21 @@ func ParseProposeParams(msg *filTypes.Message) (map[string]interface{}, error) {
 	}
 
 	params["Method"] = targetMethod
+
+	innerParams, err := r.ParseParamsMultisigTx(string(msgSerial), actorCode)
+	if err != nil {
+		rosetta.Logger.Error("Could not parse inner params. ParseParamsMultisigTx returned with error:", err.Error())
+		return params, err
+	}
+
+	innerParamsMap := map[string]interface{}{}
+	if err := json.Unmarshal([]byte(innerParams), &innerParamsMap); err != nil {
+		rosetta.Logger.Error("Could not unmarshall inner params. ParseParamsMultisigTx returned with error:", err.Error())
+		return params, err
+	}
+
+	params["Params"] = innerParamsMap
+
 	return params, nil
 }
 
