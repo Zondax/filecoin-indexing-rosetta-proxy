@@ -28,7 +28,10 @@ jobs:
       - name: Build
         run: |
           export PATH=~/.cargo/bin:$PATH
+          echo "machine github.com login $TOKEN password x-oauth-basic" > ~/.netrc
           make build
+        env:
+          TOKEN: ${{ secrets.PECORINO_READ_TOKEN }}
 
   checks:
     runs-on: ubuntu-latest
@@ -48,7 +51,11 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path --default-toolchain none -y
       - run: make build
       - name: ModTidy check
-        run: make check-modtidy
+        run: |
+          echo "machine github.com login $TOKEN password x-oauth-basic" > ~/.netrc
+          make build
+        env:
+          TOKEN: ${{ secrets.PECORINO_READ_TOKEN }}
       - name: Lint check
         run: |
           export PATH=~/.cargo/bin:$PATH
