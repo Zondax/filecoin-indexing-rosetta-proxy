@@ -9,8 +9,7 @@ require (
 	github.com/filecoin-project/go-jsonrpc v0.1.5
 	github.com/filecoin-project/go-state-types v0.1.3
 	github.com/filecoin-project/lotus v1.14.2
-	github.com/filecoin-project/specs-actors/v4 v4.0.1
-	github.com/filecoin-project/specs-actors/v5 v5.0.4
+	github.com/filecoin-project/specs-actors/v7 v7.0.0
 	github.com/ipfs/go-cid v0.1.0
 	github.com/ipfs/go-log v1.0.5
 	github.com/orcaman/concurrent-map v1.0.0

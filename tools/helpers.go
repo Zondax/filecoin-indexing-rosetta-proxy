@@ -4,7 +4,7 @@ import (
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/go-address"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
-	methods "github.com/filecoin-project/specs-actors/v5/actors/builtin"
+	methods "github.com/filecoin-project/specs-actors/v7/actors/builtin"
 	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
