@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	ds "github.com/Zondax/zindexer/connections/data_store"
+	ds "github.com/Zondax/zindexer/components/connections/data_store"
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
@@ -25,9 +25,13 @@ type ComputeState struct {
 }
 
 func NewTraceRetriever(useCache bool, bucket string, config ds.DataStoreConfig) *TraceRetriever {
-	client, err := ds.NewDataStoreClient(config)
-	if err != nil {
-		panic(err)
+	var client ds.DataStoreClient
+	if useCache {
+		var err error
+		client, err = ds.NewDataStoreClient(config)
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	return &TraceRetriever{

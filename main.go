@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/Zondax/zindexer/connections/data_store"
+	"github.com/Zondax/zindexer/components/connections/data_store"
 	"github.com/spf13/viper"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/services"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
@@ -113,6 +113,7 @@ func startRosettaRPC(ctx context.Context, api api.FullNode) error {
 		[]*types.NetworkIdentifier{network},
 		nil,
 		false,
+		"",
 	)
 	if err != nil {
 		rosetta.Logger.Fatal(err)
