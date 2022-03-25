@@ -3,7 +3,7 @@ module github.com/zondax/filecoin-indexing-rosetta-proxy
 go 1.16
 
 require (
-	github.com/Zondax/zindexer v1.0.1
+	github.com/Zondax/zindexer v0.2.11
 	github.com/coinbase/rosetta-sdk-go v0.7.2
 	github.com/filecoin-project/go-address v0.0.6
 	github.com/filecoin-project/go-jsonrpc v0.1.5
