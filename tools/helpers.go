@@ -49,7 +49,7 @@ func GetActorNameFromAddress(address address.Address, height int64) string {
 	return rosetta.GetActorNameFromCid(actorCode)
 }
 
-func GetMethodName(msg *filTypes.Message) (string, *rosettaTypes.Error) {
+func GetMethodName(msg *filTypes.Message, height int64) (string, *rosettaTypes.Error) {
 
 	if msg == nil {
 		return "", rosetta.BuildError(rosetta.ErrMalformedValue, nil, true)
@@ -65,7 +65,7 @@ func GetMethodName(msg *filTypes.Message) (string, *rosettaTypes.Error) {
 		return "Constructor", nil
 	}
 
-	actorName := GetActorNameFromAddress(msg.To, 10000)
+	actorName := GetActorNameFromAddress(msg.To, height)
 
 	var method interface{}
 	switch actorName {

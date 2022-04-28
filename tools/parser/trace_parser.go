@@ -59,7 +59,7 @@ func BuildTransactions(states *api.ComputeStateOutput, height int64) (*[]*rosett
 	return &transactions, &discoveredAddresses
 }
 
-func BuildFee(states *api.ComputeStateOutput) *[]types.TransactionFeeInfo {
+func BuildFee(states *api.ComputeStateOutput, height int64) *[]types.TransactionFeeInfo {
 	var fees []types.TransactionFeeInfo
 
 	for i := range states.Trace {
@@ -73,7 +73,7 @@ func BuildFee(states *api.ComputeStateOutput) *[]types.TransactionFeeInfo {
 			continue
 		}
 
-		baseMethod, err := tools.GetMethodName(trace.Msg)
+		baseMethod, err := tools.GetMethodName(trace.Msg, height)
 		if err != nil {
 			rosetta.Logger.Error("could not get method name. Error:", err.Message, err.Details)
 			continue
@@ -110,7 +110,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 		opStatus = rosetta.OperationStatusOk
 	}
 
-	baseMethod, err := tools.GetMethodName(trace.Msg)
+	baseMethod, err := tools.GetMethodName(trace.Msg, height)
 	if err != nil {
 		rosetta.Logger.Error("could not get method name. Error:", err.Message, err.Details)
 		baseMethod = "unknown"
