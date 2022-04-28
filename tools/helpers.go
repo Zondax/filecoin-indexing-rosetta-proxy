@@ -38,18 +38,18 @@ func SetupSupportedOperations(ops []string) {
 	}
 }
 
-func GetActorNameFromAddress(address address.Address) string {
+func GetActorNameFromAddress(address address.Address, height int64) string {
 	var actorCode cid.Cid
 	// Search for actor in cache
 	var err error
-	actorCode, err = database.ActorsDB.GetActorCode(address)
+	actorCode, err = database.ActorsDB.GetActorCode(address, height)
 	if err != nil {
 		return UnknownStr
 	}
 	return rosetta.GetActorNameFromCid(actorCode)
 }
 
-func GetMethodName(msg *filTypes.Message) (string, *rosettaTypes.Error) {
+func GetMethodName(msg *filTypes.Message, height int64) (string, *rosettaTypes.Error) {
 
 	if msg == nil {
 		return "", rosetta.BuildError(rosetta.ErrMalformedValue, nil, true)
@@ -65,7 +65,7 @@ func GetMethodName(msg *filTypes.Message) (string, *rosettaTypes.Error) {
 		return "Constructor", nil
 	}
 
-	actorName := GetActorNameFromAddress(msg.To)
+	actorName := GetActorNameFromAddress(msg.To, height)
 
 	var method interface{}
 	switch actorName {
@@ -107,7 +107,7 @@ func GetMethodName(msg *filTypes.Message) (string, *rosettaTypes.Error) {
 	return methodName, nil
 }
 
-func GetActorAddressInfo(add address.Address) types.AddressInfo {
+func GetActorAddressInfo(add address.Address, height int64) types.AddressInfo {
 
 	var (
 		addInfo types.AddressInfo
@@ -123,7 +123,7 @@ func GetActorAddressInfo(add address.Address) types.AddressInfo {
 		rosetta.Logger.Errorf("could not get short address for %s. Err: %v", add.String(), err.Error())
 	}
 
-	addInfo.ActorCid, err = database.ActorsDB.GetActorCode(add)
+	addInfo.ActorCid, err = database.ActorsDB.GetActorCode(add, height)
 	if err != nil {
 		rosetta.Logger.Error("could not get actor code from address. Err:", err.Error())
 	} else {

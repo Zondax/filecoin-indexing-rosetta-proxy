@@ -144,7 +144,7 @@ func (s *BlockAPIService) Block(
 		if err != nil {
 			return nil, err
 		}
-		transactions, discoveredAddresses = parser.BuildTransactions(states)
+		transactions, discoveredAddresses = parser.BuildTransactions(states, int64(tipSet.Height()))
 	}
 
 	// Add block metadata
