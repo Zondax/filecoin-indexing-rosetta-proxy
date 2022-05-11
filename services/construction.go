@@ -54,8 +54,7 @@ const OptionsValueKey = "value"
 
 // ConstructionAPIService implements the server.ConstructionAPIServicer interface.
 type ConstructionAPIService struct {
-	network *types.NetworkIdentifier
-	node    api.FullNode
+	node api.FullNode
 }
 
 // ConstructionMetadata implements the /construction/metadata endpoint.
