@@ -1,6 +1,9 @@
 package services
 
 import (
+	"context"
+	"github.com/filecoin-project/lotus/build"
+
 	"github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-state-types/abi"
@@ -132,12 +135,6 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 				return nil, BuildError(ErrUnableToGetNextNonce, err, true)
 			}
 			md[NonceKey] = nonce
-
-			// Get available balance
-			actor, errAct := c.node.StateGetActor(context.Background(), addressSenderParsed, filTypes.EmptyTSK)
-			if errAct != nil {
-				return nil, BuildError(ErrUnableToGetActor, errAct, true)
-			}
 
 			// GasEstimateMessageGas to get a safely overestimated value for gas limit
 			message, err = c.node.GasEstimateMessageGas(ctx, message,
