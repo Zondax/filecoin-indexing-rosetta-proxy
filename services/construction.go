@@ -1,0 +1,183 @@
+package services
+
+import (
+	"github.com/coinbase/rosetta-sdk-go/types"
+	"github.com/filecoin-project/go-address"
+	"github.com/filecoin-project/go-state-types/abi"
+	"github.com/filecoin-project/lotus/api"
+	filTypes "github.com/filecoin-project/lotus/chain/types"
+)
+
+// ChainIDKey is the name of the key in the Options map inside a
+// ConstructionMetadataRequest that specifies the current chain id
+const ChainIDKey = "chainID"
+
+// OptionsSenderIDKey is the name of the key in the Options map inside a
+// ConstructionMetadataRequest that specifies the sender's account ID
+const OptionsSenderIDKey = "idSender"
+
+// OptionsReceiverIDKey is the name of the key in the Options map inside a
+// ConstructionMetadataRequest that specifies the receiver's account ID
+const OptionsReceiverIDKey = "idReceiver"
+
+// OptionsBlockInclKey is the name of the key in the Metadata map inside a
+// ConstructionMetadataResponse determines on how many epochs message should included
+// being 0 the fastest (and the most gas expensive one)
+const OptionsBlockInclKey = "blockIncl"
+
+// NonceKey is the name of the key in the Metadata map inside a
+// ConstructionMetadataResponse that specifies the next valid nonce.
+const NonceKey = "nonce"
+
+// GasPremiumKey is the name of the key in the Metadata map inside a
+// ConstructionMetadataResponse that specifies tx's gas premium
+const GasPremiumKey = "gasPremium"
+
+// GasLimitKey is the name of the key in the Metadata map inside a
+// ConstructionMetadataResponse that specifies tx's gas limit
+const GasLimitKey = "gasLimit"
+
+// GasFeeCapKey is the name of the key in the Metadata map inside a
+// ConstructionMetadataResponse that specifies gas fee cap
+const GasFeeCapKey = "gasFeeCap"
+
+// DestinationActorIdKey is the name of the key in the Metadata map inside a
+// ConstructionMetadataResponse that specifies the receiver's actor id
+const DestinationActorIdKey = "destinationActorId"
+
+// OptionsValueKey is the name of the key in the Options map inside a
+// ConstructionMetadataRequest that specifies the tokens quantity to be sent
+const OptionsValueKey = "value"
+
+// ConstructionAPIService implements the server.ConstructionAPIServicer interface.
+type ConstructionAPIService struct {
+	network *types.NetworkIdentifier
+	node    api.FullNode
+}
+
+// ConstructionMetadata implements the /construction/metadata endpoint.
+func (c *ConstructionAPIService) ConstructionMetadata(
+	ctx context.Context,
+	request *types.ConstructionMetadataRequest,
+) (*types.ConstructionMetadataResponse, *types.Error) {
+	var (
+		addressSenderParsed   address.Address
+		addressReceiverParsed address.Address
+		err                   error
+		nonce                 uint64
+		blockInclUint         uint64 = 1
+		message                      = &filTypes.Message{
+			GasLimit: 0, GasFeeCap: filTypes.NewInt(0),
+			GasPremium: filTypes.NewInt(0),
+			Value:      abi.NewTokenAmount(1), // Use "1" as default value for better gas estimations
+		}
+	)
+
+	errNet := ValidateNetworkId(ctx, &c.node, request.NetworkIdentifier)
+	if errNet != nil {
+		return nil, errNet
+	}
+
+	md := make(map[string]interface{})
+
+	if request.Options != nil {
+		// Parse block include epochs - this field is optional
+		blockIncl, ok := request.Options[OptionsBlockInclKey]
+		if ok {
+			blockInclUint = uint64(blockIncl.(float64))
+		}
+
+		// Parse sender address - this field is optional
+		addressSenderRaw, okSender := request.Options[OptionsSenderIDKey]
+		if okSender {
+			addressSenderParsed, err = address.NewFromString(addressSenderRaw.(string))
+			if err != nil {
+				return nil, BuildError(ErrInvalidAccountAddress, err, true)
+			}
+			message.From = addressSenderParsed
+		}
+
+		// Parse receiver address - this field is optional
+		addressReceiverRaw, okReceiver := request.Options[OptionsReceiverIDKey]
+		if okReceiver {
+			addressReceiverParsed, err = address.NewFromString(addressReceiverRaw.(string))
+			if err != nil {
+				return nil, BuildError(ErrInvalidAccountAddress, err, true)
+			}
+			message.To = addressReceiverParsed
+
+			// Get receiver's actor code
+			receiverActor, errAct := c.node.StateGetActor(context.Background(), addressReceiverParsed, filTypes.EmptyTSK)
+			if errAct != nil {
+				// Actor not found on chain, set an empty field
+				md[DestinationActorIdKey] = ""
+			} else {
+				md[DestinationActorIdKey] = receiverActor.Code.String()
+			}
+		}
+
+		// Parse value to send - this field is optional
+		valueRaw, okValue := request.Options[OptionsValueKey]
+		if okValue {
+			value, err := filTypes.BigFromString(valueRaw.(string))
+			if err != nil {
+				return nil, BuildError(ErrMalformedValue, err, false)
+			}
+			message.Value = value
+		}
+
+		if okSender {
+			nonce, err = c.node.MpoolGetNonce(ctx, addressSenderParsed)
+			if err != nil {
+				return nil, BuildError(ErrUnableToGetNextNonce, err, true)
+			}
+			md[NonceKey] = nonce
+
+			// Get available balance
+			actor, errAct := c.node.StateGetActor(context.Background(), addressSenderParsed, filTypes.EmptyTSK)
+			if errAct != nil {
+				return nil, BuildError(ErrUnableToGetActor, errAct, true)
+			}
+
+			// GasEstimateMessageGas to get a safely overestimated value for gas limit
+			message, err = c.node.GasEstimateMessageGas(ctx, message,
+				&api.MessageSendSpec{MaxFee: filTypes.NewInt(build.BlockGasLimit)}, filTypes.TipSetKey{})
+			if err != nil {
+				return nil, BuildError(ErrUnableToEstimateGasLimit, err, true)
+			}
+
+			// GasEstimateGasPremium
+			gasPremium, gasErr := c.node.GasEstimateGasPremium(ctx, blockInclUint, addressSenderParsed, message.GasLimit, filTypes.TipSetKey{})
+			if gasErr != nil {
+				return nil, BuildError(ErrUnableToEstimateGasPremium, gasErr, true)
+			}
+			message.GasPremium = gasPremium
+
+			// GasEstimateFeeCap requires gasPremium to be set on message
+			gasFeeCap, gasErr := c.node.GasEstimateFeeCap(ctx, message, int64(blockInclUint), filTypes.TipSetKey{})
+			if gasErr != nil {
+				return nil, BuildError(ErrUnableToEstimateGasFeeCap, gasErr, true)
+			}
+			message.GasFeeCap = gasFeeCap
+
+		} else {
+			// We can only estimate gas premium without a sender address
+			gasPremium, gasErr := c.node.GasEstimateGasPremium(ctx, blockInclUint, address.Address{}, message.GasLimit, filTypes.TipSetKey{})
+			if gasErr != nil {
+				return nil, BuildError(ErrUnableToEstimateGasPremium, gasErr, true)
+			}
+			message.GasPremium = gasPremium
+		}
+	}
+
+	md[GasLimitKey] = message.GasLimit
+	md[GasPremiumKey] = message.GasPremium.String()
+	md[GasFeeCapKey] = message.GasFeeCap.String()
+	md[ChainIDKey] = request.NetworkIdentifier.Network
+
+	resp := &types.ConstructionMetadataResponse{
+		Metadata: md,
+	}
+
+	return resp, nil
+}
