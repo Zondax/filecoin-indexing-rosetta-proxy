@@ -9,6 +9,7 @@ import (
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
+	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 )
 
 // ChainIDKey is the name of the key in the Options map inside a
@@ -75,7 +76,7 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 		}
 	)
 
-	errNet := ValidateNetworkId(ctx, &c.node, request.NetworkIdentifier)
+	errNet := rosetta.ValidateNetworkId(ctx, &c.node, request.NetworkIdentifier)
 	if errNet != nil {
 		return nil, errNet
 	}
@@ -94,7 +95,7 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 		if okSender {
 			addressSenderParsed, err = address.NewFromString(addressSenderRaw.(string))
 			if err != nil {
-				return nil, BuildError(ErrInvalidAccountAddress, err, true)
+				return nil, rosetta.BuildError(rosetta.ErrInvalidAccountAddress, err, true)
 			}
 			message.From = addressSenderParsed
 		}
@@ -104,7 +105,7 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 		if okReceiver {
 			addressReceiverParsed, err = address.NewFromString(addressReceiverRaw.(string))
 			if err != nil {
-				return nil, BuildError(ErrInvalidAccountAddress, err, true)
+				return nil, rosetta.BuildError(rosetta.ErrInvalidAccountAddress, err, true)
 			}
 			message.To = addressReceiverParsed
 
@@ -123,7 +124,7 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 		if okValue {
 			value, err := filTypes.BigFromString(valueRaw.(string))
 			if err != nil {
-				return nil, BuildError(ErrMalformedValue, err, false)
+				return nil, rosetta.BuildError(rosetta.ErrMalformedValue, err, false)
 			}
 			message.Value = value
 		}
@@ -131,7 +132,7 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 		if okSender {
 			nonce, err = c.node.MpoolGetNonce(ctx, addressSenderParsed)
 			if err != nil {
-				return nil, BuildError(ErrUnableToGetNextNonce, err, true)
+				return nil, rosetta.BuildError(rosetta.ErrUnableToGetNextNonce, err, true)
 			}
 			md[NonceKey] = nonce
 
@@ -139,20 +140,20 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 			message, err = c.node.GasEstimateMessageGas(ctx, message,
 				&api.MessageSendSpec{MaxFee: filTypes.NewInt(build.BlockGasLimit)}, filTypes.TipSetKey{})
 			if err != nil {
-				return nil, BuildError(ErrUnableToEstimateGasLimit, err, true)
+				return nil, rosetta.BuildError(rosetta.ErrUnableToEstimateGasLimit, err, true)
 			}
 
 			// GasEstimateGasPremium
 			gasPremium, gasErr := c.node.GasEstimateGasPremium(ctx, blockInclUint, addressSenderParsed, message.GasLimit, filTypes.TipSetKey{})
 			if gasErr != nil {
-				return nil, BuildError(ErrUnableToEstimateGasPremium, gasErr, true)
+				return nil, rosetta.BuildError(rosetta.ErrUnableToEstimateGasPremium, gasErr, true)
 			}
 			message.GasPremium = gasPremium
 
 			// GasEstimateFeeCap requires gasPremium to be set on message
 			gasFeeCap, gasErr := c.node.GasEstimateFeeCap(ctx, message, int64(blockInclUint), filTypes.TipSetKey{})
 			if gasErr != nil {
-				return nil, BuildError(ErrUnableToEstimateGasFeeCap, gasErr, true)
+				return nil, rosetta.BuildError(rosetta.ErrUnableToEstimateGasFeeCap, gasErr, true)
 			}
 			message.GasFeeCap = gasFeeCap
 
@@ -160,7 +161,7 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 			// We can only estimate gas premium without a sender address
 			gasPremium, gasErr := c.node.GasEstimateGasPremium(ctx, blockInclUint, address.Address{}, message.GasLimit, filTypes.TipSetKey{})
 			if gasErr != nil {
-				return nil, BuildError(ErrUnableToEstimateGasPremium, gasErr, true)
+				return nil, rosetta.BuildError(rosetta.ErrUnableToEstimateGasPremium, gasErr, true)
 			}
 			message.GasPremium = gasPremium
 		}
