@@ -88,7 +88,7 @@ func newBlockchainRouter(
 		asserter,
 	)
 
-	constructionAPIService := rosetta.NewConstructionAPIService(network, &api)
+	constructionAPIService := services.NewConstructionAPIService(network, &api)
 	constructionAPIController := server.NewConstructionAPIController(
 		constructionAPIService,
 		asserter,

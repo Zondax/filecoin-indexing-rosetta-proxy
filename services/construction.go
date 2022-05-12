@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/coinbase/rosetta-sdk-go/server"
 	"github.com/filecoin-project/lotus/build"
 
 	"github.com/coinbase/rosetta-sdk-go/types"
@@ -55,7 +57,16 @@ const OptionsValueKey = "value"
 
 // ConstructionAPIService implements the server.ConstructionAPIServicer interface.
 type ConstructionAPIService struct {
-	node api.FullNode
+	network *types.NetworkIdentifier
+	node    api.FullNode
+}
+
+// NewConstructionAPIService creates a new instance of an ConstructionAPIService.
+func NewConstructionAPIService(network *types.NetworkIdentifier, node *api.FullNode) server.ConstructionAPIServicer {
+	return &ConstructionAPIService{
+		network: network,
+		node:    *node,
+	}
 }
 
 // ConstructionMetadata implements the /construction/metadata endpoint.
@@ -177,4 +188,70 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 	}
 
 	return resp, nil
+}
+
+// ConstructionSubmit implements the /construction/submit endpoint.
+func (c *ConstructionAPIService) ConstructionSubmit(
+	ctx context.Context,
+	request *types.ConstructionSubmitRequest,
+) (*types.TransactionIdentifierResponse, *types.Error) {
+
+	if request.SignedTransaction == "" {
+		return nil, rosetta.BuildError(rosetta.ErrMalformedValue, nil, true)
+	}
+
+	err := rosetta.ValidateNetworkId(ctx, &c.node, request.NetworkIdentifier)
+	if err != nil {
+		return nil, err
+	}
+
+	rawIn := json.RawMessage(request.SignedTransaction)
+
+	bytes, errJson := rawIn.MarshalJSON()
+	if errJson != nil {
+		return nil, rosetta.BuildError(rosetta.ErrMalformedValue, nil, true)
+	}
+
+	var signedTx filTypes.SignedMessage
+	errUnmarshal := json.Unmarshal(bytes, &signedTx)
+	if errUnmarshal != nil {
+		return nil, rosetta.BuildError(rosetta.ErrMalformedValue, nil, true)
+	}
+
+	cid, errTx := c.node.MpoolPush(ctx, &signedTx)
+	if errTx != nil {
+		return nil, rosetta.BuildError(rosetta.ErrUnableToSubmitTx, errTx, true)
+	}
+
+	resp := &types.TransactionIdentifierResponse{
+		TransactionIdentifier: &types.TransactionIdentifier{
+			Hash: cid.String(),
+		},
+	}
+
+	return resp, nil
+}
+
+func (c *ConstructionAPIService) ConstructionCombine(ctx context.Context, request *types.ConstructionCombineRequest) (*types.ConstructionCombineResponse, *types.Error) {
+	return nil, rosetta.ErrNotImplemented
+}
+
+func (c *ConstructionAPIService) ConstructionDerive(ctx context.Context, request *types.ConstructionDeriveRequest) (*types.ConstructionDeriveResponse, *types.Error) {
+	return nil, rosetta.ErrNotImplemented
+}
+
+func (c *ConstructionAPIService) ConstructionHash(ctx context.Context, request *types.ConstructionHashRequest) (*types.TransactionIdentifierResponse, *types.Error) {
+	return nil, rosetta.ErrNotImplemented
+}
+
+func (c *ConstructionAPIService) ConstructionParse(ctx context.Context, request *types.ConstructionParseRequest) (*types.ConstructionParseResponse, *types.Error) {
+	return nil, rosetta.ErrNotImplemented
+}
+
+func (c *ConstructionAPIService) ConstructionPayloads(ctx context.Context, request *types.ConstructionPayloadsRequest) (*types.ConstructionPayloadsResponse, *types.Error) {
+	return nil, rosetta.ErrNotImplemented
+}
+
+func (c *ConstructionAPIService) ConstructionPreprocess(ctx context.Context, request *types.ConstructionPreprocessRequest) (*types.ConstructionPreprocessResponse, *types.Error) {
+	return nil, rosetta.ErrNotImplemented
 }
