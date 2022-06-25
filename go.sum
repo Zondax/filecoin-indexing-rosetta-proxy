@@ -2374,10 +2374,10 @@ github.com/zondax/filecoin-actors-cids v1.1600.0 h1:N8BYVn5T/CCHA/ON8i5fG1Bh4Fve
 github.com/zondax/filecoin-actors-cids v1.1600.0/go.mod h1:AYV/GeW7HRV4L/c8bWcP93v3DxShVIXiLZWktqee7uE=
 github.com/zondax/hid v0.9.0/go.mod h1:l5wttcP0jwtdLjqjMMWFVEE7d1zO0jvSPA9OPZxWpEM=
 github.com/zondax/ledger-go v0.12.1/go.mod h1:KatxXrVDzgWwbssUWsF5+cOJHXPvzQ09YSlzGNuhOEo=
-github.com/zondax/rosetta-filecoin-lib v1.1600.1 h1:zSkc4VID9AJISxNHh7if3I/zYZONUKXTMSdn5S7isvc=
-github.com/zondax/rosetta-filecoin-lib v1.1600.1/go.mod h1:VtPVMnxpfK6nySWC5NzFFeSlCvkgnX8deSKPgZJYEjM=
-github.com/zondax/rosetta-filecoin-proxy v1.1600.0-rc2 h1:Emqct8xpfN69OMjTnAXqcj6Xpa7rm3V0EaAXlNWCVXA=
-github.com/zondax/rosetta-filecoin-proxy v1.1600.0-rc2/go.mod h1:na9Lg8QtvsFF9qhmVIea/wQVXHCqwh1xHm2a1sb2GpY=
+github.com/zondax/rosetta-filecoin-lib v1.1600.2 h1:+dUWgfhtWaBI0JSTQ3tcwaJMDj3aV+z3S+1pLYylsTE=
+github.com/zondax/rosetta-filecoin-lib v1.1600.2/go.mod h1:fDV9IEoaA2JMXEgqlIfBUHyPr6h4pwpA7ZUsfeaD+Tc=
+github.com/zondax/rosetta-filecoin-proxy v1.1600.0 h1:KsD9QTtoeHYVOY+nbel8AcwbonUWKUtN9CokU40wlA8=
+github.com/zondax/rosetta-filecoin-proxy v1.1600.0/go.mod h1:PXZI2rtPkCncO48eZrgUqmArp0yDkWX6rpyn7F29TXo=
 go.dedis.ch/fixbuf v1.0.3/go.mod h1:yzJMt34Wa5xD37V5RTdmp38cz3QhMagdGoem9anUalw=
 go.dedis.ch/kyber/v3 v3.0.4/go.mod h1:OzvaEnPvKlyrWyp3kGXlFdp7ap1VC6RkZDTaPikqhsQ=
 go.dedis.ch/kyber/v3 v3.0.9/go.mod h1:rhNjUUg6ahf8HEg5HUvVBYoWY4boAafX8tYxX+PS+qg=
