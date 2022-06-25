@@ -10,6 +10,7 @@ import (
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/parser"
+	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	"net/http"
 	"os"
 	"os/signal"
@@ -64,8 +65,9 @@ func newBlockchainRouter(
 	asserter *rosettaAsserter.Asserter,
 	api api.FullNode,
 	traceRetriever *parser.TraceRetriever,
+	rosettaLib *rosettaFilecoinLib.RosettaConstructionFilecoin,
 ) http.Handler {
-	accountAPIService := rosetta.NewAccountAPIService(network, &api)
+	accountAPIService := rosetta.NewAccountAPIService(network, &api, rosettaLib)
 	accountAPIController := server.NewAccountAPIController(
 		accountAPIService,
 		asserter,
@@ -77,7 +79,7 @@ func newBlockchainRouter(
 		asserter,
 	)
 
-	blockAPIService := services.NewBlockAPIService(network, &api, traceRetriever)
+	blockAPIService := services.NewBlockAPIService(network, &api, traceRetriever, rosettaLib)
 	blockAPIController := server.NewBlockAPIController(
 		blockAPIService,
 		asserter,
@@ -89,7 +91,7 @@ func newBlockchainRouter(
 		asserter,
 	)
 
-	mempoolAPIService := rosetta.NewMemPoolAPIService(network, &api)
+	mempoolAPIService := rosetta.NewMemPoolAPIService(network, &api, rosettaLib)
 	mempoolAPIController := server.NewMempoolAPIController(
 		mempoolAPIService,
 		asserter,
@@ -126,6 +128,9 @@ func startRosettaRPC(ctx context.Context, api api.FullNode) error {
 		rosetta.Logger.Fatal(err)
 	}
 
+	// Create instance of RosettaFilecoinLib for current network
+	r := rosettaFilecoinLib.NewRosettaConstructionFilecoin(tools.NetworkName)
+
 	// Build trace retriever
 	retriever := parser.NewTraceRetriever(
 		viper.GetBool("use_cached_traces"),
@@ -138,7 +143,7 @@ func startRosettaRPC(ctx context.Context, api api.FullNode) error {
 		},
 	)
 
-	router := newBlockchainRouter(network, asserter, api, retriever)
+	router := newBlockchainRouter(network, asserter, api, retriever, r)
 	loggedRouter := server.LoggerMiddleware(router)
 	corsRouter := server.CorsMiddleware(loggedRouter)
 	server := &http.Server{Addr: fmt.Sprintf(":%d", ServerPort), Handler: corsRouter}
@@ -170,13 +175,19 @@ func connectAPI(addr string, token string) (api.FullNode, jsonrpc.ClientCloser, 
 		return nil, nil, err
 	}
 
+	networkName, err := lotusAPI.StateNetworkName(context.Background())
+	if err != nil {
+		rosetta.Logger.Warn("Could not get Lotus network name!")
+	}
+
+	tools.NetworkName = string(networkName)
+
 	version, err := lotusAPI.Version(context.Background())
 	if err != nil {
 		rosetta.Logger.Warn("Could not get Lotus api version!")
 	}
 
-	tools.ConnectedToLotusVersion = version.Version
-	rosetta.Logger.Info("Connected to Lotus version: ", tools.ConnectedToLotusVersion)
+	rosetta.Logger.Infof("Connected to Lotus node version: %s | Network: %s ", version.String(), tools.NetworkName)
 
 	return lotusAPI, clientCloser, nil
 }

@@ -8,6 +8,8 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
+	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
+	"github.com/zondax/rosetta-filecoin-lib/actors"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 	"reflect"
 )
@@ -38,18 +40,24 @@ func SetupSupportedOperations(ops []string) {
 	}
 }
 
-func GetActorNameFromAddress(address address.Address, height int64) string {
+func GetActorNameFromAddress(address address.Address, height int64, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) string {
 	var actorCode cid.Cid
 	// Search for actor in cache
 	var err error
 	actorCode, err = database.ActorsDB.GetActorCode(address, height)
 	if err != nil {
-		return UnknownStr
+		return actors.UnknownStr
 	}
-	return rosetta.GetActorNameFromCid(actorCode)
+
+	actorName, err := lib.BuiltinActors.GetActorNameFromCid(actorCode)
+	if err != nil {
+		return actors.UnknownStr
+	}
+
+	return actorName
 }
 
-func GetMethodName(msg *filTypes.Message, height int64) (string, *rosettaTypes.Error) {
+func GetMethodName(msg *filTypes.Message, height int64, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (string, *rosettaTypes.Error) {
 
 	if msg == nil {
 		return "", rosetta.BuildError(rosetta.ErrMalformedValue, nil, true)
@@ -65,7 +73,7 @@ func GetMethodName(msg *filTypes.Message, height int64) (string, *rosettaTypes.E
 		return "Constructor", nil
 	}
 
-	actorName := GetActorNameFromAddress(msg.To, height)
+	actorName := GetActorNameFromAddress(msg.To, height, lib)
 
 	var method interface{}
 	switch actorName {
@@ -107,7 +115,7 @@ func GetMethodName(msg *filTypes.Message, height int64) (string, *rosettaTypes.E
 	return methodName, nil
 }
 
-func GetActorAddressInfo(add address.Address, height int64) types.AddressInfo {
+func GetActorAddressInfo(add address.Address, height int64, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) types.AddressInfo {
 
 	var (
 		addInfo types.AddressInfo
@@ -127,7 +135,7 @@ func GetActorAddressInfo(add address.Address, height int64) types.AddressInfo {
 	if err != nil {
 		rosetta.Logger.Error("could not get actor code from address. Err:", err.Error())
 	} else {
-		addInfo.ActorType = rosetta.GetActorNameFromCid(addInfo.ActorCid)
+		addInfo.ActorType, _ = lib.BuiltinActors.GetActorNameFromCid(addInfo.ActorCid)
 	}
 
 	return addInfo
