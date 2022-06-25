@@ -24,7 +24,7 @@ func appendAddressInfo(addressMap *types.AddressInfoMap, info ...types.AddressIn
 	}
 }
 
-func BuildTransactions(states *api.ComputeStateOutput, height int64) (*[]*rosettaTypes.Transaction, *types.AddressInfoMap) {
+func BuildTransactions(states *ComputeStateVersioned, height int64) (*[]*rosettaTypes.Transaction, *types.AddressInfoMap) {
 	defer rosetta.TimeTrack(time.Now(), "[Proxy]TraceAnalysis")
 
 	var transactions []*rosettaTypes.Transaction

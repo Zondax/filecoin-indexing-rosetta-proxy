@@ -11,6 +11,9 @@ var (
 
 	// Other configs
 	RetryConnectAttempts = "1000000"
+
+	// Populated on main.go
+	ConnectedToLotusVersion = UnknownStr
 )
 
 const (

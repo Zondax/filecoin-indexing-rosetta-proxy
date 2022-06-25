@@ -11,7 +11,7 @@ ifeq ($(UNAME), Darwin)
 export LIBRARY_PATH=$(shell brew --prefix hwloc)/lib
 export LDFLAGS="-L$(LIBRARY_PATH)"
 export LD_LIBRARY_PATH=$(LIBRARY_PATH)
-export FFI_BUILD_FROM_SOURCE=1
+export FFI_BUILD_FROM_SOURCE=0
 endif
 
 .PHONY: build

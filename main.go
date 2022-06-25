@@ -6,6 +6,7 @@ import (
 	"github.com/Zondax/zindexer/components/connections/data_store"
 	"github.com/spf13/viper"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/services"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/services/call"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/parser"
@@ -82,6 +83,12 @@ func newBlockchainRouter(
 		asserter,
 	)
 
+	callAPIService := call.NewCallAPIService(network, &api, traceRetriever)
+	callAPIController := server.NewCallAPIController(
+		callAPIService,
+		asserter,
+	)
+
 	mempoolAPIService := rosetta.NewMemPoolAPIService(network, &api)
 	mempoolAPIController := server.NewMempoolAPIController(
 		mempoolAPIService,
@@ -94,8 +101,8 @@ func newBlockchainRouter(
 		asserter,
 	)
 
-	return server.NewRouter(accountAPIController, networkAPIController,
-		blockAPIController, mempoolAPIController, constructionAPIController)
+	return server.NewRouter(accountAPIController, networkAPIController, blockAPIController,
+		mempoolAPIController, constructionAPIController, callAPIController)
 }
 
 func startRosettaRPC(ctx context.Context, api api.FullNode) error {
@@ -111,7 +118,7 @@ func startRosettaRPC(ctx context.Context, api api.FullNode) error {
 		rosetta.GetSupportedOpList(),
 		true,
 		[]*types.NetworkIdentifier{network},
-		nil,
+		[]string{call.StateComputeCall},
 		false,
 		"",
 	)
@@ -168,7 +175,8 @@ func connectAPI(addr string, token string) (api.FullNode, jsonrpc.ClientCloser, 
 		rosetta.Logger.Warn("Could not get Lotus api version!")
 	}
 
-	rosetta.Logger.Info("Connected to Lotus version: ", version.String())
+	tools.ConnectedToLotusVersion = version.Version
+	rosetta.Logger.Info("Connected to Lotus version: ", tools.ConnectedToLotusVersion)
 
 	return lotusAPI, clientCloser, nil
 }

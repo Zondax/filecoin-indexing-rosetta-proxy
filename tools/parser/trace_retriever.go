@@ -9,6 +9,7 @@ import (
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/ipfs/go-cid"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 	"time"
 )
@@ -19,9 +20,10 @@ type TraceRetriever struct {
 	ds.DataStoreClient
 }
 
-type ComputeState struct {
-	Root  cid.Cid            `json:"Root"`
-	Trace []*api.InvocResult `json:"Trace"`
+type ComputeStateVersioned struct {
+	Root         cid.Cid            `json:"Root"`
+	Trace        []*api.InvocResult `json:"Trace"`
+	LotusVersion string             `json:"LotusVersion"`
 }
 
 func NewTraceRetriever(useCache bool, bucket string, config ds.DataStoreConfig) *TraceRetriever {
@@ -41,7 +43,7 @@ func NewTraceRetriever(useCache bool, bucket string, config ds.DataStoreConfig) 
 	}
 }
 
-func (t *TraceRetriever) GetStateCompute(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) (*api.ComputeStateOutput, *rosettaTypes.Error) {
+func (t *TraceRetriever) GetStateCompute(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) (*ComputeStateVersioned, *rosettaTypes.Error) {
 	if t.useCachedTraces {
 		return t.getStoredStateCompute(tipSet)
 	}
@@ -49,7 +51,7 @@ func (t *TraceRetriever) GetStateCompute(ctx context.Context, node *api.FullNode
 	return t.getLotusStateCompute(ctx, node, tipSet)
 }
 
-func (t *TraceRetriever) getLotusStateCompute(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) (*api.ComputeStateOutput, *rosettaTypes.Error) {
+func (t *TraceRetriever) getLotusStateCompute(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) (*ComputeStateVersioned, *rosettaTypes.Error) {
 	defer rosetta.TimeTrack(time.Now(), "[Lotus]StateCompute")
 
 	// StateCompute includes the messages at height N-1.
@@ -58,10 +60,15 @@ func (t *TraceRetriever) getLotusStateCompute(ctx context.Context, node *api.Ful
 	if err != nil {
 		return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, err, true)
 	}
-	return states, nil
+
+	return &ComputeStateVersioned{
+		Root:         states.Root,
+		Trace:        states.Trace,
+		LotusVersion: tools.ConnectedToLotusVersion,
+	}, nil
 }
 
-func (t *TraceRetriever) getStoredStateCompute(tipSet *filTypes.TipSet) (*api.ComputeStateOutput, *rosettaTypes.Error) {
+func (t *TraceRetriever) getStoredStateCompute(tipSet *filTypes.TipSet) (*ComputeStateVersioned, *rosettaTypes.Error) {
 	defer rosetta.TimeTrack(time.Now(), "getStoredStateCompute")
 
 	data, err := t.DataStoreClient.Client.GetFile(fmt.Sprintf("traces_%s.json", tipSet.Height().String()), t.tracesBucket)
@@ -70,14 +77,15 @@ func (t *TraceRetriever) getStoredStateCompute(tipSet *filTypes.TipSet) (*api.Co
 	}
 
 	// Unmarshall it
-	var trace ComputeState
+	var trace ComputeStateVersioned
 	err = json.Unmarshal(*data, &trace)
 	if err != nil {
 		return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, err, true)
 	}
 
-	return &api.ComputeStateOutput{
-		Root:  trace.Root,
-		Trace: trace.Trace,
+	return &ComputeStateVersioned{
+		Root:         trace.Root,
+		Trace:        trace.Trace,
+		LotusVersion: trace.LotusVersion,
 	}, nil
 }
