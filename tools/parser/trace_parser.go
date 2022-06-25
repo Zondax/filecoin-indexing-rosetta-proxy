@@ -7,6 +7,8 @@ import (
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
+	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
+	"github.com/zondax/rosetta-filecoin-lib/actors"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 	"time"
 )
@@ -24,7 +26,7 @@ func appendAddressInfo(addressMap *types.AddressInfoMap, info ...types.AddressIn
 	}
 }
 
-func BuildTransactions(states *ComputeStateVersioned, height int64) (*[]*rosettaTypes.Transaction, *types.AddressInfoMap) {
+func BuildTransactions(states *ComputeStateVersioned, height int64, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (*[]*rosettaTypes.Transaction, *types.AddressInfoMap) {
 	defer rosetta.TimeTrack(time.Now(), "[Proxy]TraceAnalysis")
 
 	var transactions []*rosettaTypes.Transaction
@@ -39,7 +41,7 @@ func BuildTransactions(states *ComputeStateVersioned, height int64) (*[]*rosetta
 		var operations []*rosettaTypes.Operation
 
 		// Analyze full trace recursively
-		ProcessTrace(&trace.ExecutionTrace, &operations, height, &discoveredAddresses)
+		ProcessTrace(&trace.ExecutionTrace, &operations, height, &discoveredAddresses, lib)
 		if len(operations) > 0 {
 			// Add the corresponding "Fee" operation
 			if !trace.GasCost.TotalCost.Nil() {
@@ -59,7 +61,7 @@ func BuildTransactions(states *ComputeStateVersioned, height int64) (*[]*rosetta
 	return &transactions, &discoveredAddresses
 }
 
-func BuildFee(states *api.ComputeStateOutput, height int64) *[]types.TransactionFeeInfo {
+func BuildFee(states *api.ComputeStateOutput, height int64, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) *[]types.TransactionFeeInfo {
 	var fees []types.TransactionFeeInfo
 
 	for i := range states.Trace {
@@ -73,7 +75,7 @@ func BuildFee(states *api.ComputeStateOutput, height int64) *[]types.Transaction
 			continue
 		}
 
-		baseMethod, err := tools.GetMethodName(trace.Msg, height)
+		baseMethod, err := tools.GetMethodName(trace.Msg, height, lib)
 		if err != nil {
 			rosetta.Logger.Error("could not get method name. Error:", err.Message, err.Details)
 			continue
@@ -99,7 +101,8 @@ func BuildFee(states *api.ComputeStateOutput, height int64) *[]types.Transaction
 	return &fees
 }
 
-func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Operation, height int64, addresses *types.AddressInfoMap) {
+func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Operation,
+	height int64, addresses *types.AddressInfoMap, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) {
 
 	if trace.Msg == nil {
 		return
@@ -110,14 +113,14 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 		opStatus = rosetta.OperationStatusOk
 	}
 
-	baseMethod, err := tools.GetMethodName(trace.Msg, height)
+	baseMethod, err := tools.GetMethodName(trace.Msg, height, lib)
 	if err != nil {
 		rosetta.Logger.Error("could not get method name. Error:", err.Message, err.Details)
 		baseMethod = "unknown"
 	}
 
-	fromAdd := tools.GetActorAddressInfo(trace.Msg.From, height)
-	toAdd := tools.GetActorAddressInfo(trace.Msg.To, height)
+	fromAdd := tools.GetActorAddressInfo(trace.Msg.From, height, lib)
+	toAdd := tools.GetActorAddressInfo(trace.Msg.To, height, lib)
 	appendAddressInfo(addresses, fromAdd, toAdd)
 
 	if tools.IsOpSupported(baseMethod) {
@@ -141,7 +144,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 			}
 		case "CreateMiner":
 			{
-				createdActor, err := searchForActorCreation(trace.Msg, trace.MsgRct, height)
+				createdActor, err := searchForActorCreation(trace.Msg, trace.MsgRct, height, lib)
 				if err != nil {
 					rosetta.Logger.Errorf("Could not parse 'CreateMiner' params, err: %v", err)
 					break
@@ -156,7 +159,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 					trace.Msg.Value.String(), opStatus, true, nil)
 
 				// Check if this Exec contains actor creation event
-				createdActor, err := searchForActorCreation(trace.Msg, trace.MsgRct, height)
+				createdActor, err := searchForActorCreation(trace.Msg, trace.MsgRct, height, lib)
 				if err != nil {
 					rosetta.Logger.Errorf("Could not parse Exec params, err: %v", err)
 					break
@@ -170,7 +173,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 				appendAddressInfo(addresses, *createdActor)
 
 				// Check if the created actor is of multisig type and if it was also funded
-				if rosetta.GetActorNameFromCid(createdActor.ActorCid) == "multisig" &&
+				if lib.BuiltinActors.IsActor(createdActor.ActorCid, actors.ActorMultisigName) &&
 					!trace.Msg.Value.NilOrZero() {
 					from := toAdd.Short
 					to := createdActor.Short
@@ -244,15 +247,20 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 	if opStatus == rosetta.OperationStatusOk {
 		for i := range trace.Subcalls {
 			subTrace := trace.Subcalls[i]
-			ProcessTrace(&subTrace, operations, height, addresses)
+			ProcessTrace(&subTrace, operations, height, addresses, lib)
 		}
 	}
 }
 
-func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageReceipt, height int64) (*types.AddressInfo, error) {
+func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageReceipt,
+	height int64, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (*types.AddressInfo, error) {
 
-	toAddressInfo := tools.GetActorAddressInfo(msg.To, height)
-	actorName := rosetta.GetActorNameFromCid(toAddressInfo.ActorCid)
+	toAddressInfo := tools.GetActorAddressInfo(msg.To, height, lib)
+	actorName, err := lib.BuiltinActors.GetActorNameFromCid(toAddressInfo.ActorCid)
+	if err != nil {
+		return nil, err
+	}
+
 	switch actorName {
 	case "init":
 		{
@@ -260,7 +268,10 @@ func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageRece
 			if err != nil {
 				return nil, err
 			}
-			createdActorName := rosetta.GetActorNameFromCid(params.CodeCID)
+			createdActorName, err := lib.BuiltinActors.GetActorNameFromCid(params.CodeCID)
+			if err != nil {
+				return nil, err
+			}
 			switch createdActorName {
 			case "multisig", "paymentchannel":
 				{

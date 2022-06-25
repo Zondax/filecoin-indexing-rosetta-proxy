@@ -14,12 +14,14 @@ var (
 
 	// Populated on main.go
 	ConnectedToLotusVersion = UnknownStr
+
+	// Network name (read from api in main)
+	NetworkName = ""
 )
 
 const (
 	// Network
 	BlockChainName = "Filecoin"
-	NetworkName    = "mainnet"
 )
 
 // SupportedOperations operations that will be parsed

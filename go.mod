@@ -7,15 +7,15 @@ require (
 	github.com/coinbase/rosetta-sdk-go v0.7.10
 	github.com/filecoin-project/go-address v0.0.6
 	github.com/filecoin-project/go-jsonrpc v0.1.5
-	github.com/filecoin-project/go-state-types v0.1.9
-	github.com/filecoin-project/lotus v1.16.0-rc1
+	github.com/filecoin-project/go-state-types v0.1.10
+	github.com/filecoin-project/lotus v1.16.0
 	github.com/filecoin-project/specs-actors/v7 v7.0.1
 	github.com/ipfs/go-cid v0.1.0
 	github.com/ipfs/go-log v1.0.5
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/spf13/viper v1.7.1
-	github.com/zondax/rosetta-filecoin-lib v1.1501.0
-	github.com/zondax/rosetta-filecoin-proxy v1.1501.0
+	github.com/zondax/rosetta-filecoin-lib v1.1600.1
+	github.com/zondax/rosetta-filecoin-proxy v1.1600.0-rc2
 )
 
 require (
@@ -188,6 +188,7 @@ require (
 	github.com/whyrusleeping/bencher v0.0.0-20190829221104-bb6607aa8bba // indirect
 	github.com/whyrusleeping/cbor-gen v0.0.0-20220323183124-98fa8256a799 // indirect
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee // indirect
+	github.com/zondax/filecoin-actors-cids v1.1600.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/otel v1.3.0 // indirect
 	go.opentelemetry.io/otel/trace v1.3.0 // indirect
