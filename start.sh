@@ -26,6 +26,7 @@ exit_func() {
 
 # From lotus v1.16 and on we need to enable this flag to have a full trace output
 export LOTUS_VM_ENABLE_TRACING=1
+export LOTUS_USE_FVM_TO_SYNC_MAINNET_V15=1
 
 echo -e "${GRN}Running command: ${OFF}${BOLDW}lotus daemon $1 $2${OFF}"
 
