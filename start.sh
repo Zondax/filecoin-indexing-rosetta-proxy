@@ -25,7 +25,9 @@ exit_func() {
 }
 
 # From lotus v1.16 and on we need to enable this flag to have a full trace output
-export LOTUS_VM_ENABLE_TRACING=1
+# On release v1.16, by enabling this flag the output of StateCompute it's on the order
+# of 100MB. Might be a lotus bug.
+export LOTUS_VM_ENABLE_TRACING=0
 
 echo -e "${GRN}Running command: ${OFF}${BOLDW}lotus daemon $1 $2${OFF}"
 
