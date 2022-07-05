@@ -186,7 +186,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 			}
 		case "Propose":
 			{
-				params, err := ParseProposeParams(trace.Msg, height)
+				params, err := ParseProposeParams(trace.Msg, height, lib)
 				if err != nil {
 					rosetta.Logger.Errorf("Could not parse message params for %v, error: %v", baseMethod, err.Error())
 					break
@@ -199,7 +199,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 			}
 		case "SwapSigner", "AddSigner", "RemoveSigner":
 			{
-				params, err := ParseMsigParams(trace.Msg, height)
+				params, err := ParseMsigParams(trace.Msg, height, lib)
 				if err == nil {
 					var paramsMap map[string]interface{}
 					if err := json.Unmarshal([]byte(params), &paramsMap); err == nil {
