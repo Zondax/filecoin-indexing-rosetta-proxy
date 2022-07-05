@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/filecoin-project/lotus/chain/actors/builtin"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	initActor "github.com/filecoin-project/specs-actors/v7/actors/builtin/init"
 	"github.com/filecoin-project/specs-actors/v7/actors/builtin/power"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
-	filLib "github.com/zondax/rosetta-filecoin-lib"
+	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
+	"github.com/zondax/rosetta-filecoin-lib/actors"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 )
 
@@ -45,8 +45,7 @@ func ParseExecReturn(raw []byte) (initActor.ExecReturn, error) {
 	return execReturn, nil
 }
 
-func ParseProposeParams(msg *filTypes.Message, height int64) (map[string]interface{}, error) {
-	r := &filLib.RosettaConstructionFilecoin{}
+func ParseProposeParams(msg *filTypes.Message, height int64, rosettaLib *rosettaFilecoinLib.RosettaConstructionFilecoin) (map[string]interface{}, error) {
 	var params map[string]interface{}
 	msgSerial, err := msg.MarshalJSON()
 	if err != nil {
@@ -59,11 +58,11 @@ func ParseProposeParams(msg *filTypes.Message, height int64) (map[string]interfa
 		return params, err
 	}
 
-	if !builtin.IsMultisigActor(actorCode) {
+	if !rosettaLib.BuiltinActors.IsActor(actorCode, actors.ActorMultisigName) {
 		return params, fmt.Errorf("id %v (address %v) doesn't correspond to a multisig actor", actorCode, msg.To)
 	}
 
-	parsedParams, err := r.GetInnerProposeTxParams(string(msgSerial))
+	parsedParams, err := rosettaLib.GetInnerProposeTxParams(string(msgSerial))
 	if err != nil {
 		rosetta.Logger.Errorf("Could not parse params. ParseProposeTxParams returned with error: %s", err.Error())
 		return params, err
@@ -74,7 +73,7 @@ func ParseProposeParams(msg *filTypes.Message, height int64) (map[string]interfa
 		return params, err
 	}
 
-	targetMethod, err := r.GetProposedMethod(parsedParams, targetActorCode)
+	targetMethod, err := rosettaLib.GetProposedMethod(parsedParams, targetActorCode)
 	if err != nil {
 		return params, err
 	}
@@ -91,7 +90,7 @@ func ParseProposeParams(msg *filTypes.Message, height int64) (map[string]interfa
 
 	params["Method"] = targetMethod
 
-	innerParams, err := r.ParseParamsMultisigTx(string(msgSerial), actorCode)
+	innerParams, err := rosettaLib.ParseParamsMultisigTx(string(msgSerial), actorCode)
 	if err != nil {
 		rosetta.Logger.Error("Could not parse inner params for propose method:", targetMethod, ". ParseParamsMultisigTx returned with error:", err.Error())
 		rosetta.Logger.Debugf("raw serial msg: %s", string(msgSerial))
@@ -109,8 +108,7 @@ func ParseProposeParams(msg *filTypes.Message, height int64) (map[string]interfa
 	return params, nil
 }
 
-func ParseMsigParams(msg *filTypes.Message, height int64) (string, error) {
-	r := &filLib.RosettaConstructionFilecoin{}
+func ParseMsigParams(msg *filTypes.Message, height int64, rosettaLib *rosettaFilecoinLib.RosettaConstructionFilecoin) (string, error) {
 	msgSerial, err := msg.MarshalJSON()
 	if err != nil {
 		rosetta.Logger.Error("Could not parse params. Cannot serialize lotus message:", err.Error())
@@ -122,11 +120,11 @@ func ParseMsigParams(msg *filTypes.Message, height int64) (string, error) {
 		return "", err
 	}
 
-	if !builtin.IsMultisigActor(actorCode) {
+	if !rosettaLib.BuiltinActors.IsActor(actorCode, actors.ActorMultisigName) {
 		return "", fmt.Errorf("this id doesn't correspond to a multisig actor")
 	}
 
-	parsedParams, err := r.ParseParamsMultisigTx(string(msgSerial), actorCode)
+	parsedParams, err := rosettaLib.ParseParamsMultisigTx(string(msgSerial), actorCode)
 	if err != nil {
 		rosetta.Logger.Error("Could not parse params. ParseParamsMultisigTx returned with error:", err.Error())
 		return "", err
