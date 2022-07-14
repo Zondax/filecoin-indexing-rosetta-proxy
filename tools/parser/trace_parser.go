@@ -44,10 +44,20 @@ func BuildTransactions(states *ComputeStateVersioned, height int64, lib *rosetta
 		ProcessTrace(&trace.ExecutionTrace, &operations, height, &discoveredAddresses, lib)
 		if len(operations) > 0 {
 			// Add the corresponding "Fee" operation
-			if !trace.GasCost.TotalCost.Nil() {
+			if !trace.GasCost.TotalCost.NilOrZero() {
 				opStatus := rosetta.OperationStatusOk
-				operations = AppendOp(operations, "Fee", trace.Msg.From.String(),
+
+				operations = AppendOp(operations, "TotalFee", trace.Msg.From.String(),
 					trace.GasCost.TotalCost.Neg().String(), opStatus, false, nil)
+
+				operations = AppendOp(operations, "OverEstimationBurn", trace.Msg.From.String(),
+					trace.GasCost.OverEstimationBurn.Neg().String(), opStatus, false, nil)
+
+				operations = AppendOp(operations, "MinerFee", trace.Msg.From.String(),
+					trace.GasCost.MinerTip.Neg().String(), opStatus, false, nil)
+
+				operations = AppendOp(operations, "BurnFee", trace.Msg.From.String(),
+					trace.GasCost.BaseFeeBurn.Neg().String(), opStatus, false, nil)
 			}
 
 			transactions = append(transactions, &rosettaTypes.Transaction{
