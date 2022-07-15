@@ -206,13 +206,10 @@ func main() {
 	viper.AddConfigPath("/")
 	viper.AddConfigPath(".")
 	viper.SetDefault("use_cached_traces", false)
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %w \n", err))
-	}
 
 	var lotusAPI api.FullNode
 	var clientCloser jsonrpc.ClientCloser
+	var err error
 
 	retryAttempts, _ := strconv.Atoi(rosetta.RetryConnectAttempts)
 
