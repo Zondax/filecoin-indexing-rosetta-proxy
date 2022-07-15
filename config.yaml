@@ -1,7 +1,0 @@
-use_cached_traces: true
-trace_bucket: <BUCKET_NAME>
-data_store:
-  user: <USER>
-  password: <PASSWORD>
-  url: <URL>
-
