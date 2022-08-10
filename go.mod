@@ -14,7 +14,7 @@ require (
 	github.com/ipfs/go-log v1.0.5
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/spf13/viper v1.7.1
-	github.com/zondax/rosetta-filecoin-lib v1.1600.3
+	github.com/zondax/rosetta-filecoin-lib v1.1600.5
 	github.com/zondax/rosetta-filecoin-proxy v1.1600.1
 )
 
