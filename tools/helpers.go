@@ -40,11 +40,11 @@ func SetupSupportedOperations(ops []string) {
 	}
 }
 
-func GetActorNameFromAddress(address address.Address, height int64, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) string {
+func GetActorNameFromAddress(address address.Address, height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) string {
 	var actorCode cid.Cid
 	// Search for actor in cache
 	var err error
-	actorCode, err = database.ActorsDB.GetActorCode(address, height)
+	actorCode, err = database.ActorsDB.GetActorCode(address, height, key)
 	if err != nil {
 		return actors.UnknownStr
 	}
@@ -57,7 +57,7 @@ func GetActorNameFromAddress(address address.Address, height int64, lib *rosetta
 	return actorName
 }
 
-func GetMethodName(msg *filTypes.Message, height int64, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (string, *rosettaTypes.Error) {
+func GetMethodName(msg *filTypes.Message, height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (string, *rosettaTypes.Error) {
 
 	if msg == nil {
 		return "", rosetta.BuildError(rosetta.ErrMalformedValue, nil, true)
@@ -73,7 +73,7 @@ func GetMethodName(msg *filTypes.Message, height int64, lib *rosettaFilecoinLib.
 		return "Constructor", nil
 	}
 
-	actorName := GetActorNameFromAddress(msg.To, height, lib)
+	actorName := GetActorNameFromAddress(msg.To, height, key, lib)
 
 	var method interface{}
 	switch actorName {
@@ -115,7 +115,7 @@ func GetMethodName(msg *filTypes.Message, height int64, lib *rosettaFilecoinLib.
 	return methodName, nil
 }
 
-func GetActorAddressInfo(add address.Address, height int64, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) types.AddressInfo {
+func GetActorAddressInfo(add address.Address, height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) types.AddressInfo {
 
 	var (
 		addInfo types.AddressInfo
@@ -131,7 +131,7 @@ func GetActorAddressInfo(add address.Address, height int64, lib *rosettaFilecoin
 		rosetta.Logger.Errorf("could not get short address for %s. Err: %v", add.String(), err.Error())
 	}
 
-	addInfo.ActorCid, err = database.ActorsDB.GetActorCode(add, height)
+	addInfo.ActorCid, err = database.ActorsDB.GetActorCode(add, height, key)
 	if err != nil {
 		rosetta.Logger.Error("could not get actor code from address. Err:", err.Error())
 	} else {
