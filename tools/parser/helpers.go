@@ -45,7 +45,7 @@ func ParseExecReturn(raw []byte) (initActor.ExecReturn, error) {
 	return execReturn, nil
 }
 
-func ParseProposeParams(msg *filTypes.Message, height int64, rosettaLib *rosettaFilecoinLib.RosettaConstructionFilecoin) (map[string]interface{}, error) {
+func ParseProposeParams(msg *filTypes.Message, height int64, key filTypes.TipSetKey, rosettaLib *rosettaFilecoinLib.RosettaConstructionFilecoin) (map[string]interface{}, error) {
 	var params map[string]interface{}
 	msgSerial, err := msg.MarshalJSON()
 	if err != nil {
@@ -53,7 +53,7 @@ func ParseProposeParams(msg *filTypes.Message, height int64, rosettaLib *rosetta
 		return params, err
 	}
 
-	actorCode, err := database.ActorsDB.GetActorCode(msg.To, height)
+	actorCode, err := database.ActorsDB.GetActorCode(msg.To, height, key)
 	if err != nil {
 		return params, err
 	}
@@ -68,7 +68,7 @@ func ParseProposeParams(msg *filTypes.Message, height int64, rosettaLib *rosetta
 		return params, err
 	}
 
-	targetActorCode, err := database.ActorsDB.GetActorCode(parsedParams.To, height)
+	targetActorCode, err := database.ActorsDB.GetActorCode(parsedParams.To, height, key)
 	if err != nil {
 		return params, err
 	}
@@ -108,14 +108,14 @@ func ParseProposeParams(msg *filTypes.Message, height int64, rosettaLib *rosetta
 	return params, nil
 }
 
-func ParseMsigParams(msg *filTypes.Message, height int64, rosettaLib *rosettaFilecoinLib.RosettaConstructionFilecoin) (string, error) {
+func ParseMsigParams(msg *filTypes.Message, height int64, key filTypes.TipSetKey, rosettaLib *rosettaFilecoinLib.RosettaConstructionFilecoin) (string, error) {
 	msgSerial, err := msg.MarshalJSON()
 	if err != nil {
 		rosetta.Logger.Error("Could not parse params. Cannot serialize lotus message:", err.Error())
 		return "", err
 	}
 
-	actorCode, err := database.ActorsDB.GetActorCode(msg.To, height)
+	actorCode, err := database.ActorsDB.GetActorCode(msg.To, height, key)
 	if err != nil {
 		return "", err
 	}

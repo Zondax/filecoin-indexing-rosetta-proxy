@@ -18,13 +18,13 @@ jobs:
           submodules: true
       - uses: actions/setup-go@v2
         with:
-          go-version: '^1.17'
+          go-version: '1.17.5'
       - name: Install deps
         run: |
           sudo apt-get update
           sudo apt-get install -yy apt-utils
           sudo apt-get install -yy curl gcc git bzr jq pkg-config mesa-opencl-icd ocl-icd-opencl-dev hwloc libhwloc-dev
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path --default-toolchain none -y
+#          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path --default-toolchain none -y
       - name: Build
         run: |
           export PATH=~/.cargo/bin:$PATH
@@ -42,13 +42,13 @@ jobs:
           submodules: true
       - uses: actions/setup-go@v2
         with:
-          go-version: '^1.17'
+          go-version: '1.17.5'
       - name: Install deps
         run: |
           sudo apt-get update
           sudo apt-get install -yy apt-utils
           sudo apt-get install -yy curl gcc git bzr jq pkg-config mesa-opencl-icd ocl-icd-opencl-dev hwloc libhwloc-dev
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path --default-toolchain none -y
+#          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --no-modify-path --default-toolchain none -y
       - name: Build
         run: |
           export PATH=~/.cargo/bin:$PATH
@@ -60,7 +60,5 @@ jobs:
         run: make check-modtidy
       - name: Lint check
         run: |
-          export PATH=~/.cargo/bin:$PATH
-          export PATH=$PATH:$(go env GOPATH)/bin
           make install_lint
           make lint

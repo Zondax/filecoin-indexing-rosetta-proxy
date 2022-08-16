@@ -26,7 +26,7 @@ func appendAddressInfo(addressMap *types.AddressInfoMap, info ...types.AddressIn
 	}
 }
 
-func BuildTransactions(states *ComputeStateVersioned, height int64, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (*[]*rosettaTypes.Transaction, *types.AddressInfoMap) {
+func BuildTransactions(states *ComputeStateVersioned, height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (*[]*rosettaTypes.Transaction, *types.AddressInfoMap) {
 	defer rosetta.TimeTrack(time.Now(), "[Proxy]TraceAnalysis")
 
 	var transactions []*rosettaTypes.Transaction
@@ -41,7 +41,7 @@ func BuildTransactions(states *ComputeStateVersioned, height int64, lib *rosetta
 		var operations []*rosettaTypes.Operation
 
 		// Analyze full trace recursively
-		ProcessTrace(&trace.ExecutionTrace, &operations, height, &discoveredAddresses, lib)
+		ProcessTrace(&trace.ExecutionTrace, &operations, height, &discoveredAddresses, key, lib)
 		if len(operations) > 0 {
 			// Add the corresponding "Fee" operation
 			if !trace.GasCost.TotalCost.NilOrZero() {
@@ -71,7 +71,7 @@ func BuildTransactions(states *ComputeStateVersioned, height int64, lib *rosetta
 	return &transactions, &discoveredAddresses
 }
 
-func BuildFee(states *api.ComputeStateOutput, height int64, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) *[]types.TransactionFeeInfo {
+func BuildFee(states *api.ComputeStateOutput, height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) *[]types.TransactionFeeInfo {
 	var fees []types.TransactionFeeInfo
 
 	for i := range states.Trace {
@@ -85,7 +85,7 @@ func BuildFee(states *api.ComputeStateOutput, height int64, lib *rosettaFilecoin
 			continue
 		}
 
-		baseMethod, err := tools.GetMethodName(trace.Msg, height, lib)
+		baseMethod, err := tools.GetMethodName(trace.Msg, height, key, lib)
 		if err != nil {
 			rosetta.Logger.Error("could not get method name. Error:", err.Message, err.Details)
 			continue
@@ -112,7 +112,7 @@ func BuildFee(states *api.ComputeStateOutput, height int64, lib *rosettaFilecoin
 }
 
 func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Operation,
-	height int64, addresses *types.AddressInfoMap, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) {
+	height int64, addresses *types.AddressInfoMap, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) {
 
 	if trace.Msg == nil {
 		return
@@ -123,14 +123,14 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 		opStatus = rosetta.OperationStatusOk
 	}
 
-	baseMethod, err := tools.GetMethodName(trace.Msg, height, lib)
+	baseMethod, err := tools.GetMethodName(trace.Msg, height, key, lib)
 	if err != nil {
 		rosetta.Logger.Error("could not get method name. Error:", err.Message, err.Details)
 		baseMethod = "unknown"
 	}
 
-	fromAdd := tools.GetActorAddressInfo(trace.Msg.From, height, lib)
-	toAdd := tools.GetActorAddressInfo(trace.Msg.To, height, lib)
+	fromAdd := tools.GetActorAddressInfo(trace.Msg.From, height, key, lib)
+	toAdd := tools.GetActorAddressInfo(trace.Msg.To, height, key, lib)
 	appendAddressInfo(addresses, fromAdd, toAdd)
 
 	if tools.IsOpSupported(baseMethod) {
@@ -154,7 +154,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 			}
 		case "CreateMiner":
 			{
-				createdActor, err := searchForActorCreation(trace.Msg, trace.MsgRct, height, lib)
+				createdActor, err := searchForActorCreation(trace.Msg, trace.MsgRct, height, key, lib)
 				if err != nil {
 					rosetta.Logger.Errorf("Could not parse 'CreateMiner' params, err: %v", err)
 					break
@@ -169,7 +169,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 					trace.Msg.Value.String(), opStatus, true, nil)
 
 				// Check if this Exec contains actor creation event
-				createdActor, err := searchForActorCreation(trace.Msg, trace.MsgRct, height, lib)
+				createdActor, err := searchForActorCreation(trace.Msg, trace.MsgRct, height, key, lib)
 				if err != nil {
 					rosetta.Logger.Errorf("Could not parse Exec params, err: %v", err)
 					break
@@ -196,7 +196,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 			}
 		case "Propose":
 			{
-				params, err := ParseProposeParams(trace.Msg, height, lib)
+				params, err := ParseProposeParams(trace.Msg, height, key, lib)
 				if err != nil {
 					rosetta.Logger.Errorf("Could not parse message params for %v, error: %v", baseMethod, err.Error())
 					break
@@ -209,7 +209,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 			}
 		case "SwapSigner", "AddSigner", "RemoveSigner":
 			{
-				params, err := ParseMsigParams(trace.Msg, height, lib)
+				params, err := ParseMsigParams(trace.Msg, height, key, lib)
 				if err == nil {
 					var paramsMap map[string]interface{}
 					if err := json.Unmarshal([]byte(params), &paramsMap); err == nil {
@@ -257,15 +257,15 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 	if opStatus == rosetta.OperationStatusOk {
 		for i := range trace.Subcalls {
 			subTrace := trace.Subcalls[i]
-			ProcessTrace(&subTrace, operations, height, addresses, lib)
+			ProcessTrace(&subTrace, operations, height, addresses, key, lib)
 		}
 	}
 }
 
 func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageReceipt,
-	height int64, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (*types.AddressInfo, error) {
+	height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (*types.AddressInfo, error) {
 
-	toAddressInfo := tools.GetActorAddressInfo(msg.To, height, lib)
+	toAddressInfo := tools.GetActorAddressInfo(msg.To, height, key, lib)
 	actorName, err := lib.BuiltinActors.GetActorNameFromCid(toAddressInfo.ActorCid)
 	if err != nil {
 		return nil, err

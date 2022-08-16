@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/filecoin-project/go-address"
-	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/ipfs/go-cid"
@@ -22,7 +21,7 @@ func SetupActorsDatabase(api *api.FullNode) {
 
 type Database interface {
 	NewImpl(*api.FullNode)
-	GetActorCode(robustAdd address.Address, height int64) (cid.Cid, error)
+	GetActorCode(robustAdd address.Address, height int64, key filTypes.TipSetKey) (cid.Cid, error)
 	GetRobustAddress(shortAdd address.Address) (string, error)
 	GetShortAddress(robustAdd address.Address) (string, error)
 	StoreAddressInfo(info types.AddressInfo)
@@ -43,12 +42,12 @@ func (m *Cache) NewImpl(node *api.FullNode) {
 	m.Node = node
 }
 
-func (m *Cache) GetActorCode(address address.Address, height int64) (cid.Cid, error) {
+func (m *Cache) GetActorCode(address address.Address, height int64, key filTypes.TipSetKey) (cid.Cid, error) {
 	shortAddress, _ := m.GetShortAddress(address)
 	code, ok := m.shortCidMap.Get(shortAddress)
 	if !ok {
 		var err error
-		code, err = m.retrieveActorFromLotus(address, height)
+		code, err = m.retrieveActorFromLotus(address, key)
 		if err != nil {
 			return cid.Cid{}, err
 		}
@@ -134,19 +133,14 @@ func (m *Cache) storeActorCode(shortAddress string, cid cid.Cid) {
 	m.shortCidMap.Set(shortAddress, cid)
 }
 
-func (m *Cache) retrieveActorFromLotus(add address.Address, height int64) (cid.Cid, error) {
+func (m *Cache) retrieveActorFromLotus(add address.Address, key filTypes.TipSetKey) (cid.Cid, error) {
 	actor, err := (*m.Node).StateGetActor(context.Background(), add, filTypes.EmptyTSK)
 	if err != nil {
 		// Try again but using the corresponding tipset Key
-		t, err := (*m.Node).ChainGetTipSetByHeight(context.Background(), abi.ChainEpoch(height), filTypes.EmptyTSK)
+		actor, err = (*m.Node).StateGetActor(context.Background(), add, key)
 		if err != nil {
 			return cid.Cid{}, err
 		}
-		actor, err := (*m.Node).StateGetActor(context.Background(), add, t.Key())
-		if err != nil {
-			return cid.Cid{}, err
-		}
-		return actor.Code, nil
 	}
 
 	return actor.Code, nil
