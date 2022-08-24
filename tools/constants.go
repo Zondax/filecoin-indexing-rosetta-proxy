@@ -22,6 +22,12 @@ var (
 const (
 	// Network
 	BlockChainName = "Filecoin"
+
+	// Fees
+	TotalFeeOp           = "Fee"
+	OverEstimationBurnOp = "OverEstimationBurn"
+	MinerFeeOp           = "MinerFee"
+	BurnFeeOp            = "BurnFee"
 )
 
 // SupportedOperations operations that will be parsed
