@@ -149,7 +149,7 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 
 			// GasEstimateMessageGas to get a safely overestimated value for gas limit
 			message, err = c.node.GasEstimateMessageGas(ctx, message,
-				&api.MessageSendSpec{MaxFee: filTypes.NewInt(build.BlockGasLimit)}, filTypes.TipSetKey{})
+				&api.MessageSendSpec{MaxFee: filTypes.NewInt(uint64(build.BlockGasLimit))}, filTypes.TipSetKey{})
 			if err != nil {
 				return nil, rosetta.BuildError(rosetta.ErrUnableToEstimateGasLimit, err, true)
 			}
