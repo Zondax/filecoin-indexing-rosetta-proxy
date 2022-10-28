@@ -51,6 +51,10 @@ var SupportedOperations = map[string]bool{
 	"ChangeOwnerAddress":     true, // MethodsMiner
 	"ChangeWorkerAddress":    true, // MethodsMiner
 	"ConfirmUpdateWorkerKey": true, // MethodsMiner
+	"DeclareFaultsRecovered": true, // MethodsMiner
+	"PreCommitSectorBatch":   true, // MethodsMiner
+	"ProveCommitAggregate":   true, // MethodsMiner
+	"ProveReplicaUpdates":    true, // MethodsMiner
 	"CreateMiner":            true, // MethodsPower
 	"AddBalance":             true, // MethodsMarket
 	"AddVerifiedClient":      true, // MethodsVerifiedRegistry

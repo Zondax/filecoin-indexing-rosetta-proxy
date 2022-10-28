@@ -15,7 +15,7 @@ require (
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/spf13/viper v1.7.1
 	github.com/zondax/rosetta-filecoin-lib v1.1600.6-0.20221021134001-c21837b5f421
-	github.com/zondax/rosetta-filecoin-proxy v1.1600.1
+	github.com/zondax/rosetta-filecoin-proxy v1.1600.4-0.20221021135051-5026fad4d141
 )
 
 require (
@@ -156,7 +156,7 @@ require (
 	github.com/whyrusleeping/cbor-gen v0.0.0-20220514204315-f29c37e9c44c // indirect
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/zondax/filecoin-actors-cids v1.1800.0-rc3 // indirect
+	github.com/zondax/filecoin-actors-cids v1.1800.0-rc4 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect
