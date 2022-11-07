@@ -61,3 +61,13 @@ var SupportedOperations = map[string]bool{
 	"AddVerifier":            true, // MethodsVerifiedRegistry
 	"RemoveVerifier":         true, // MethodsVerifiedRegistry
 }
+
+func GetSupportedOps() []string {
+	var result []string
+	for k, v := range SupportedOperations {
+		if v {
+			result = append(result, k)
+		}
+	}
+	return result
+}
