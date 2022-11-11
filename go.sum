@@ -1428,6 +1428,8 @@ github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9dec
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/zondax/filecoin-actors-cids v1.1800.1-rc5 h1:7MlWMkXxCGgz/CKC83mEv8bxId4hog6QBqDAI7Zp4HI=
 github.com/zondax/filecoin-actors-cids v1.1800.1-rc5/go.mod h1:e+v+4OrHY6rtNJBbehMlZ6s0HsTLkW8DT31YvL4RSSA=
+github.com/zondax/rosetta-filecoin-lib v1.1600.6-0.20221107193518-a68aa2f02e93 h1:1r0OuQxF5nlxBMPy3KWbXQqYsuKQ0MPuMGdp9pLZBtw=
+github.com/zondax/rosetta-filecoin-lib v1.1600.6-0.20221107193518-a68aa2f02e93/go.mod h1:+YUWeJ346cRSb9vuzR7e+/pJdpMThYnQbsh2l+cMv5g=
 github.com/zondax/rosetta-filecoin-proxy v1.1600.4-0.20221107193719-203362e6eb42 h1:akv46BYG2yXihxSVdSpWGBY7Lls9dxk6flzoFzc4Bt0=
 github.com/zondax/rosetta-filecoin-proxy v1.1600.4-0.20221107193719-203362e6eb42/go.mod h1:fhn4Z5FKADTWRidl5kf8sHSEv3DWg+SvIVrL/uS+k6w=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=

@@ -176,7 +176,4 @@ require (
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
 
-replace (
-	github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
-	github.com/zondax/rosetta-filecoin-lib => /Users/nicolascamilo/go/src/github.com/Zondax/rosetta-filecoin-lib
-)
+replace github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
