@@ -76,13 +76,3 @@ func GetSupportedOps() []string {
 	}
 	return result
 }
-
-func GetSupportedOps() []string {
-	var result []string
-	for k, v := range SupportedOperations {
-		if v {
-			result = append(result, k)
-		}
-	}
-	return result
-}
