@@ -60,6 +60,11 @@ var SupportedOperations = map[string]bool{
 	"AddVerifiedClient":      true, // MethodsVerifiedRegistry
 	"AddVerifier":            true, // MethodsVerifiedRegistry
 	"RemoveVerifier":         true, // MethodsVerifiedRegistry
+	"InvokeContract":         true, // MethodsEVM
+	"GetBytecode":            true, // MethodsEVM
+	"GetStorageAt":           true, // MethodsEVM
+	"InvokeContractReadOnly": true, // MethodsEVM
+	"InvokeContractDelegate": true, // MethodsEVM
 }
 
 func GetSupportedOps() []string {

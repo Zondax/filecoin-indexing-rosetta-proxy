@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/lotus/api"
@@ -135,6 +136,17 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 
 	if tools.IsOpSupported(baseMethod) {
 		switch baseMethod {
+		case "InvokeContract", "InvokeContractReadOnly", "InvokeContractDelegate":
+			{
+				metadata := make(map[string]interface{})
+				metadata["Params"] = hex.EncodeToString(trace.Msg.Params)
+				metadata["Return"] = hex.EncodeToString(trace.MsgRct.Return)
+
+				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
+					trace.Msg.Value.Neg().String(), opStatus, false, &metadata)
+				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
+					trace.Msg.Value.String(), opStatus, true, &metadata)
+			}
 		case "AddBalance":
 			{
 				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
