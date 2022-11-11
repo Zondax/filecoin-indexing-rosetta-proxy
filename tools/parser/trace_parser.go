@@ -50,14 +50,14 @@ func BuildTransactions(states *ComputeStateVersioned, height int64, key filTypes
 				operations = AppendOp(operations, tools.TotalFeeOp, trace.Msg.From.String(),
 					trace.GasCost.TotalCost.Neg().String(), opStatus, false, nil)
 
-				//operations = AppendOp(operations, tools.OverEstimationBurnOp, trace.Msg.From.String(),
-				//	trace.GasCost.OverEstimationBurn.Neg().String(), opStatus, false, nil)
-				//
-				//operations = AppendOp(operations, tools.MinerFeeOp, trace.Msg.From.String(),
-				//	trace.GasCost.MinerTip.Neg().String(), opStatus, false, nil)
-				//
-				//operations = AppendOp(operations, tools.BurnFeeOp, trace.Msg.From.String(),
-				//	trace.GasCost.BaseFeeBurn.Neg().String(), opStatus, false, nil)
+				operations = AppendOp(operations, tools.OverEstimationBurnOp, trace.Msg.From.String(),
+					trace.GasCost.OverEstimationBurn.Neg().String(), opStatus, false, nil)
+
+				operations = AppendOp(operations, tools.MinerFeeOp, trace.Msg.From.String(),
+					trace.GasCost.MinerTip.Neg().String(), opStatus, false, nil)
+
+				operations = AppendOp(operations, tools.BurnFeeOp, trace.Msg.From.String(),
+					trace.GasCost.BaseFeeBurn.Neg().String(), opStatus, false, nil)
 			}
 
 			transactions = append(transactions, &rosettaTypes.Transaction{
