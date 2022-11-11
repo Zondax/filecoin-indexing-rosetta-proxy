@@ -73,7 +73,7 @@ func newBlockchainRouter(
 		asserter,
 	)
 
-	networkAPIService := rosetta.NewNetworkAPIService(network, &api)
+	networkAPIService := rosetta.NewNetworkAPIService(network, &api, tools.GetSupportedOps())
 	networkAPIController := server.NewNetworkAPIController(
 		networkAPIService,
 		asserter,

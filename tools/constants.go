@@ -51,9 +51,23 @@ var SupportedOperations = map[string]bool{
 	"ChangeOwnerAddress":     true, // MethodsMiner
 	"ChangeWorkerAddress":    true, // MethodsMiner
 	"ConfirmUpdateWorkerKey": true, // MethodsMiner
+	"DeclareFaultsRecovered": true, // MethodsMiner
+	"PreCommitSectorBatch":   true, // MethodsMiner
+	"ProveCommitAggregate":   true, // MethodsMiner
+	"ProveReplicaUpdates":    true, // MethodsMiner
 	"CreateMiner":            true, // MethodsPower
 	"AddBalance":             true, // MethodsMarket
 	"AddVerifiedClient":      true, // MethodsVerifiedRegistry
 	"AddVerifier":            true, // MethodsVerifiedRegistry
 	"RemoveVerifier":         true, // MethodsVerifiedRegistry
+}
+
+func GetSupportedOps() []string {
+	var result []string
+	for k, v := range SupportedOperations {
+		if v {
+			result = append(result, k)
+		}
+	}
+	return result
 }
