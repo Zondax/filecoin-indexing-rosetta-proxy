@@ -139,8 +139,8 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 		case "InvokeContract", "InvokeContractReadOnly", "InvokeContractDelegate":
 			{
 				metadata := make(map[string]interface{})
-				metadata["Params"] = hex.EncodeToString(trace.Msg.Params)
-				metadata["Return"] = hex.EncodeToString(trace.MsgRct.Return)
+				metadata["Params"] = "0x" + hex.EncodeToString(trace.Msg.Params)
+				metadata["Return"] = "0x" + hex.EncodeToString(trace.MsgRct.Return)
 
 				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
 					trace.Msg.Value.Neg().String(), opStatus, false, &metadata)
