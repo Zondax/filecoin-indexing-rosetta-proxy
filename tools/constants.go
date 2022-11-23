@@ -60,6 +60,10 @@ var SupportedOperations = map[string]bool{
 	"AddVerifiedClient":      true, // MethodsVerifiedRegistry
 	"AddVerifier":            true, // MethodsVerifiedRegistry
 	"RemoveVerifier":         true, // MethodsVerifiedRegistry
+	"ChangeMultiaddrs":       true,
+	"ChangePeerID":           true,
+	"ExtendSectorExpiration": true,
+	"PublishStorageDeals":    true,
 }
 
 func GetSupportedOps() []string {

@@ -238,7 +238,8 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 		case "AwardBlockReward", "ApplyRewards", "OnDeferredCronEvent",
 			"PreCommitSector", "ProveCommitSector", "SubmitWindowedPoSt",
 			"DeclareFaultsRecovered", "ChangeWorkerAddress", "PreCommitSectorBatch",
-			"ProveCommitAggregate", "ProveReplicaUpdates":
+			"ProveCommitAggregate", "ProveReplicaUpdates", "ChangeMultiaddrs",
+			"ChangePeerID", "ExtendSectorExpiration", "PublishStorageDeals":
 			{
 				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
 					trace.Msg.Value.Neg().String(), opStatus, false, nil)
