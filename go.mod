@@ -5,18 +5,20 @@ go 1.18
 require (
 	github.com/Zondax/zindexer v1.0.5
 	github.com/coinbase/rosetta-sdk-go v0.7.10
-	github.com/filecoin-project/go-address v1.0.1-0.20221019124855-ac317c37debb
+	github.com/filecoin-project/go-address v1.1.0
 	github.com/filecoin-project/go-jsonrpc v0.1.9
-	github.com/filecoin-project/go-state-types v0.9.8
-	github.com/filecoin-project/lotus v1.18.0-rc5
+	github.com/filecoin-project/go-state-types v0.9.10-0.20221109071515-5536f160fe27
+	github.com/filecoin-project/lotus v1.18.0
 	github.com/filecoin-project/specs-actors/v8 v8.0.1
-	github.com/ipfs/go-cid v0.2.0
+	github.com/ipfs/go-cid v0.3.2
 	github.com/ipfs/go-log v1.0.5
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/spf13/viper v1.7.1
-	github.com/zondax/rosetta-filecoin-lib v1.1600.6-0.20221107193518-a68aa2f02e93
-	github.com/zondax/rosetta-filecoin-proxy v1.1600.4-0.20221107193719-203362e6eb42
+	github.com/zondax/rosetta-filecoin-lib v1.1800.0
+	github.com/zondax/rosetta-filecoin-proxy v1.1800.0
 )
+
+replace github.com/filecoin-project/lotus => github.com/filecoin-project/lotus v1.18.0-rc5.0.20221118204509-33d2629eeb84
 
 require (
 	github.com/DataDog/zstd v1.5.2 // indirect
@@ -156,7 +158,7 @@ require (
 	github.com/whyrusleeping/cbor-gen v0.0.0-20221021053955-c138aae13722 // indirect
 	github.com/whyrusleeping/timecache v0.0.0-20160911033111-cfcb2f1abfee // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/zondax/filecoin-actors-cids v1.1800.1-rc5 // indirect
+	github.com/zondax/filecoin-actors-cids v1.1800.2 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/otel v1.7.0 // indirect
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect

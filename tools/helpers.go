@@ -3,9 +3,8 @@ package tools
 import (
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/go-address"
-	"github.com/filecoin-project/go-state-types/abi"
+	methods "github.com/filecoin-project/go-state-types/builtin"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
-	methods "github.com/filecoin-project/specs-actors/v8/actors/builtin"
 	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
@@ -16,15 +15,6 @@ import (
 )
 
 const UnknownStr = "unknown"
-
-var MethodsEVM = struct {
-	Constructor            abi.MethodNum
-	InvokeContract         abi.MethodNum
-	GetBytecode            abi.MethodNum
-	GetStorageAt           abi.MethodNum
-	InvokeContractReadOnly abi.MethodNum
-	InvokeContractDelegate abi.MethodNum
-}{methods.MethodConstructor, 2, 3, 4, 5, 6}
 
 func IsOpSupported(op string) bool {
 	supported, ok := SupportedOperations[op]
@@ -108,7 +98,11 @@ func GetMethodName(msg *filTypes.Message, height int64, key filTypes.TipSetKey, 
 	case "verifiedregistry":
 		method = methods.MethodsVerifiedRegistry
 	case "evm":
-		method = MethodsEVM
+		method = methods.MethodsEVM
+	case "eam":
+		method = methods.MethodsEAM
+	case "datacap":
+		method = methods.MethodsDatacap
 	default:
 		return UnknownStr, nil
 	}
