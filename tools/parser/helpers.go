@@ -11,6 +11,8 @@ import (
 	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	"github.com/zondax/rosetta-filecoin-lib/actors"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
+	"go.uber.org/zap"
+	"google.golang.org/genproto/googleapis/type/decimal"
 )
 
 func ParseInitActorExecParams(raw []byte) (initActor.ExecParams, error) {
@@ -131,4 +133,17 @@ func ParseMsigParams(msg *filTypes.Message, height int64, key filTypes.TipSetKey
 	}
 
 	return parsedParams, nil
+}
+
+func GetCastedAmount(amount string) decimal.Decimal {
+	decimal.DivisionPrecision = 18
+	parsed, err := decimal.NewFromString(amount)
+	if err != nil {
+		zap.S().Errorf("error when casting value: %v", err)
+		return decimal.Decimal{}
+	}
+	abs := parsed.Abs()
+	divided := abs.Div(decimal.NewFromInt(1e+18))
+
+	return divided
 }

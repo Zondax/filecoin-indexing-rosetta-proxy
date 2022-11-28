@@ -65,6 +65,8 @@ var SupportedOperations = map[string]bool{
 	"GetStorageAt":           true, // MethodsEVM
 	"InvokeContractReadOnly": true, // MethodsEVM
 	"InvokeContractDelegate": true, // MethodsEVM
+	"Create":                 true, // MethodsEAM
+	"Create2":                true, // MethodsEAM
 }
 
 func GetSupportedOps() []string {
