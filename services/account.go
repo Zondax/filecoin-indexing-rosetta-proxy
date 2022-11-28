@@ -1,0 +1,209 @@
+package services
+
+import (
+	"context"
+	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
+	"github.com/zondax/rosetta-filecoin-lib/actors"
+	"github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
+	"strconv"
+
+	"github.com/coinbase/rosetta-sdk-go/server"
+	"github.com/coinbase/rosetta-sdk-go/types"
+	"github.com/filecoin-project/go-address"
+	"github.com/filecoin-project/go-state-types/abi"
+	"github.com/filecoin-project/lotus/api"
+	filTypes "github.com/filecoin-project/lotus/chain/types"
+)
+
+// AccountAPIService implements the server.BlockAPIServicer interface.
+type AccountAPIService struct {
+	network    *types.NetworkIdentifier
+	node       api.FullNode
+	rosettaLib *rosettaFilecoinLib.RosettaConstructionFilecoin
+}
+
+// NewBlockAPIService creates a new instance of a BlockAPIService.
+func NewAccountAPIService(network *types.NetworkIdentifier, node *api.FullNode, r *rosettaFilecoinLib.RosettaConstructionFilecoin) server.AccountAPIServicer {
+	return &AccountAPIService{
+		network:    network,
+		node:       *node,
+		rosettaLib: r,
+	}
+}
+
+// AccountBalance implements the /account/balance endpoint.
+func (a AccountAPIService) AccountBalance(ctx context.Context,
+	request *types.AccountBalanceRequest) (*types.AccountBalanceResponse, *types.Error) {
+
+	errNet := services.ValidateNetworkId(ctx, &a.node, request.NetworkIdentifier)
+	if errNet != nil {
+		return nil, errNet
+	}
+
+	addr, filErr := address.NewFromString(request.AccountIdentifier.Address)
+	if filErr != nil {
+		return nil, services.BuildError(services.ErrInvalidAccountAddress, nil, true)
+	}
+
+	// Check sync status
+	status, syncErr := services.CheckSyncStatus(ctx, &a.node)
+	if syncErr != nil {
+		return nil, syncErr
+	}
+	if !status.IsSynced() {
+		return nil, services.BuildError(services.ErrNodeNotSynced, nil, true)
+	}
+
+	useHeadTipSet := false
+
+	var queryTipSet *filTypes.TipSet    // TipSet to use on StateGetActor
+	var responseTipSet *filTypes.TipSet // TipSet to get queryTipSetHeight and queryTipSetHash values for response
+	var headTipSet *filTypes.TipSet     // Chain's head TipSet
+
+	var fixedQueryHeight int64
+	var originalQueryHeight int64
+
+	// To return in response
+	var queryTipSetHeight int64
+	var queryTipSetHash *string
+
+	headTipSet, filErr = a.node.ChainHead(ctx)
+	if filErr != nil {
+		return nil, services.BuildError(services.ErrUnableToGetLatestBlk, filErr, true)
+	}
+
+	if request.BlockIdentifier != nil {
+		if request.BlockIdentifier.Index == nil {
+			return nil, services.BuildError(services.ErrInsufficientQueryInputs, nil, true)
+		}
+
+		originalQueryHeight = *request.BlockIdentifier.Index
+		// From lotus v1.5 and on, StateGetActor computes the state at parent's tipSet.
+		// To get the state on the requested height, we need to query the block at (height + 1).
+
+		// First, check if we're querying the head tipSet, if not, query the +1 tipSet
+		if originalQueryHeight == int64(headTipSet.Height()) {
+			useHeadTipSet = true
+		} else {
+			fixedQueryHeight = originalQueryHeight + 1
+		}
+	} else {
+		// If BlockIdentifier is not set, query chain's head tipSet
+		useHeadTipSet = true
+	}
+
+	if useHeadTipSet {
+		queryTipSet = headTipSet
+		responseTipSet, filErr = a.node.ChainGetTipSet(ctx, headTipSet.Parents())
+		if filErr != nil {
+			return nil, services.BuildError(services.ErrUnableToGetParentBlk, filErr, true)
+		}
+	} else {
+		queryTipSet, filErr = a.node.ChainGetTipSetByHeight(ctx, abi.ChainEpoch(fixedQueryHeight), filTypes.EmptyTSK)
+		if filErr != nil {
+			return nil, services.BuildError(services.ErrUnableToGetBlk, filErr, true)
+		}
+		if queryTipSet.Height() == abi.ChainEpoch(originalQueryHeight) {
+			// Means that the tipset at originalQueryHeight + 1 has no blocks, so we need to skip it
+			fixedQueryHeight = originalQueryHeight + 2
+
+			// Repeat the call with the updated height
+			queryTipSet, filErr = a.node.ChainGetTipSetByHeight(ctx, abi.ChainEpoch(fixedQueryHeight), filTypes.EmptyTSK)
+			if filErr != nil {
+				return nil, services.BuildError(services.ErrUnableToGetBlk, filErr, true)
+			}
+		}
+		responseTipSet, filErr = a.node.ChainGetTipSetByHeight(ctx, abi.ChainEpoch(originalQueryHeight), filTypes.EmptyTSK)
+		if filErr != nil {
+			return nil, services.BuildError(services.ErrUnableToGetBlk, filErr, true)
+		}
+	}
+
+	var balanceStr = "0"
+	queryTipSetHeight = int64(responseTipSet.Height())
+	queryTipSetHash, filErr = services.BuildTipSetKeyHash(responseTipSet.Key())
+	if filErr != nil {
+		return nil, services.BuildError(services.ErrUnableToBuildTipSetHash, filErr, true)
+	}
+
+	actor, err := a.node.StateGetActor(ctx, addr, queryTipSet.Key())
+	if err != nil {
+		// If actor is not found on chain, return 0 balance
+		return &types.AccountBalanceResponse{
+			BlockIdentifier: &types.BlockIdentifier{
+				Index: queryTipSetHeight,
+				Hash:  *queryTipSetHash,
+			},
+			Balances: []*types.Amount{
+				{
+					Value:    "0",
+					Currency: services.GetCurrencyData(),
+				},
+			},
+		}, nil
+	}
+
+	md := make(map[string]interface{})
+
+	if request.AccountIdentifier.SubAccount != nil {
+		// First, check if account is a multisig
+		if !a.rosettaLib.BuiltinActors.IsActor(actor.Code, actors.ActorMultisigName) {
+			return nil, services.BuildError(services.ErrAddNotMSig, nil, true)
+		}
+
+		switch request.AccountIdentifier.SubAccount.Address {
+		case services.LockedBalanceStr:
+			lockedBalance := actor.Balance
+			spendableBalance, err := a.node.MsigGetAvailableBalance(ctx, addr, queryTipSet.Key())
+			if err != nil {
+				return nil, services.BuildError(services.ErrUnableToGetBalance, err, true)
+			}
+			lockedBalance.Sub(lockedBalance.Int, spendableBalance.Int)
+			balanceStr = lockedBalance.String()
+		case services.SpendableBalanceStr:
+			spendableBalance, err := a.node.MsigGetAvailableBalance(ctx, addr, queryTipSet.Key())
+			if err != nil {
+				return nil, services.BuildError(services.ErrUnableToGetBalance, err, true)
+			}
+			balanceStr = spendableBalance.String()
+		case services.VestingScheduleStr:
+			vestingSch, err := a.node.MsigGetVestingSchedule(ctx, addr, queryTipSet.Key())
+			if err != nil {
+				return nil, services.BuildError(services.ErrUnableToGetVesting, err, true)
+			}
+			vestingMap := map[string]string{}
+			vestingMap[services.VestingStartEpochKey] = vestingSch.StartEpoch.String()
+			vestingMap[services.VestingUnlockDurationKey] = vestingSch.UnlockDuration.String()
+			vestingMap[services.VestingInitialBalanceKey] = vestingSch.InitialBalance.String()
+			md[services.VestingScheduleStr] = vestingMap
+		default:
+			return nil, services.BuildError(services.ErrMustSpecifySubAccount, nil, true)
+		}
+	} else {
+		// Get available balance (spendable + locked if multisig)
+		balanceStr = actor.Balance.String()
+	}
+
+	// Fill nonce
+	md[NonceKey] = strconv.FormatUint(actor.Nonce, 10)
+
+	resp := &types.AccountBalanceResponse{
+		BlockIdentifier: &types.BlockIdentifier{
+			Index: queryTipSetHeight,
+			Hash:  *queryTipSetHash,
+		},
+		Balances: []*types.Amount{
+			{
+				Value:    balanceStr,
+				Currency: services.GetCurrencyData(),
+			},
+		},
+		Metadata: md,
+	}
+
+	return resp, nil
+}
+
+func (a AccountAPIService) AccountCoins(ctx context.Context, request *types.AccountCoinsRequest) (*types.AccountCoinsResponse, *types.Error) {
+	return nil, services.ErrNotImplemented
+}
