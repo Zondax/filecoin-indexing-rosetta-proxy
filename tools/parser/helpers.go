@@ -7,12 +7,12 @@ import (
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	initActor "github.com/filecoin-project/specs-actors/v8/actors/builtin/init"
 	"github.com/filecoin-project/specs-actors/v8/actors/builtin/power"
+	"github.com/shopspring/decimal"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	"github.com/zondax/rosetta-filecoin-lib/actors"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 	"go.uber.org/zap"
-	"google.golang.org/genproto/googleapis/type/decimal"
 )
 
 func ParseInitActorExecParams(raw []byte) (initActor.ExecParams, error) {

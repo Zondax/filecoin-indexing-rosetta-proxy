@@ -2,7 +2,7 @@ package types
 
 import (
 	"github.com/ipfs/go-cid"
-	"google.golang.org/genproto/googleapis/type/decimal"
+	"github.com/shopspring/decimal"
 )
 
 type Transaction struct {

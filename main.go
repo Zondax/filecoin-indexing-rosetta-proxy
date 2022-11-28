@@ -65,6 +65,7 @@ func newBlockchainRouter(
 	asserter *rosettaAsserter.Asserter,
 	api api.FullNode,
 	traceRetriever *parser.TraceRetriever,
+	traceParser *parser.TransactionParser,
 	rosettaLib *rosettaFilecoinLib.RosettaConstructionFilecoin,
 ) http.Handler {
 	accountAPIService := rosetta.NewAccountAPIService(network, &api, rosettaLib)
@@ -79,7 +80,7 @@ func newBlockchainRouter(
 		asserter,
 	)
 
-	blockAPIService := services.NewBlockAPIService(network, &api, traceRetriever, rosettaLib)
+	blockAPIService := services.NewBlockAPIService(network, &api, traceRetriever, traceParser, rosettaLib)
 	blockAPIController := server.NewBlockAPIController(
 		blockAPIService,
 		asserter,
@@ -129,7 +130,7 @@ func startRosettaRPC(ctx context.Context, api api.FullNode) error {
 	}
 
 	// Create instance of RosettaFilecoinLib for current network
-	r := rosettaFilecoinLib.NewRosettaConstructionFilecoin(tools.NetworkName)
+	r := rosettaFilecoinLib.NewRosettaConstructionFilecoin(&api)
 
 	// Build trace retriever
 	retriever := parser.NewTraceRetriever(
@@ -139,11 +140,14 @@ func startRosettaRPC(ctx context.Context, api api.FullNode) error {
 			Url:      viper.GetString("data_store.url"),
 			User:     viper.GetString("data_store.user"),
 			Password: viper.GetString("data_store.password"),
-			Service:  data_store.MinIOStorage,
+			Service:  data_store.LocalStorage,
 		},
 	)
 
-	router := newBlockchainRouter(network, asserter, api, retriever, r)
+	// Build trace parser
+	traceParser := parser.NewTransactionParser(api)
+
+	router := newBlockchainRouter(network, asserter, api, retriever, traceParser, r)
 	loggedRouter := server.LoggerMiddleware(router)
 	corsRouter := server.CorsMiddleware(loggedRouter)
 	server := &http.Server{Addr: fmt.Sprintf(":%d", ServerPort), Handler: corsRouter}

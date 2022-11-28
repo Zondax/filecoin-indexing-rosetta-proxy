@@ -33,16 +33,18 @@ type BlockAPIService struct {
 	network        *rosettaTypes.NetworkIdentifier
 	node           api.FullNode
 	traceRetriever *parser.TraceRetriever
+	traceParser    *parser.TransactionParser
 	rosettaLib     *filLib.RosettaConstructionFilecoin
 }
 
 // NewBlockAPIService creates a new instance of a BlockAPIService.
 func NewBlockAPIService(network *rosettaTypes.NetworkIdentifier, api *api.FullNode,
-	retriever *parser.TraceRetriever, r *filLib.RosettaConstructionFilecoin) server.BlockAPIServicer {
+	retriever *parser.TraceRetriever, traceParser *parser.TransactionParser, r *filLib.RosettaConstructionFilecoin) server.BlockAPIServicer {
 	return &BlockAPIService{
 		network:        network,
 		node:           *api,
 		traceRetriever: retriever,
+		traceParser:    traceParser,
 		rosettaLib:     r,
 	}
 }
@@ -148,7 +150,7 @@ func (s *BlockAPIService) Block(
 		if err != nil {
 			return nil, err
 		}
-		transactions, discoveredAddresses = parser.BuildTransactions(states, int64(tipSet.Height()), tipSet.Key(), s.rosettaLib)
+		_, discoveredAddresses = s.traceParser.BuildTransactions(states, tipSet.Key())
 	}
 
 	// Add block metadata
