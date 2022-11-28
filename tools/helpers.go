@@ -7,7 +7,7 @@ import (
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
+	types2 "github.com/zondax/filecoin-indexing-rosetta-proxy/tools/parser/types"
 	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	"github.com/zondax/rosetta-filecoin-lib/actors"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
@@ -121,10 +121,10 @@ func GetMethodName(msg *filTypes.Message, height int64, key filTypes.TipSetKey, 
 	return methodName, nil
 }
 
-func GetActorAddressInfo(add address.Address, height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) types.AddressInfo {
+func GetActorAddressInfo(add address.Address, height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) types2.AddressInfo {
 
 	var (
-		addInfo types.AddressInfo
+		addInfo types2.AddressInfo
 		err     error
 	)
 	addInfo.Robust, err = database.ActorsDB.GetRobustAddress(add)

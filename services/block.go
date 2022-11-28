@@ -8,7 +8,7 @@ import (
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/parser"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
+	types2 "github.com/zondax/filecoin-indexing-rosetta-proxy/tools/parser/types"
 	filLib "github.com/zondax/rosetta-filecoin-lib"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 	rosettaTools "github.com/zondax/rosetta-filecoin-proxy/rosetta/tools"
@@ -142,7 +142,7 @@ func (s *BlockAPIService) Block(
 
 	// Build transactions data
 	var transactions *[]*rosettaTypes.Transaction
-	var discoveredAddresses *types.AddressInfoMap
+	var discoveredAddresses *types2.AddressInfoMap
 	if requestedHeight > 1 {
 		states, err := s.traceRetriever.GetStateCompute(ctx, &s.node, tipSet)
 		if err != nil {

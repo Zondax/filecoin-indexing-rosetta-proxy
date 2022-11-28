@@ -8,7 +8,7 @@ import (
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/ipfs/go-cid"
 	cmap "github.com/orcaman/concurrent-map"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
+	types2 "github.com/zondax/filecoin-indexing-rosetta-proxy/tools/parser/types"
 )
 
 var ActorsDB Database
@@ -24,7 +24,7 @@ type Database interface {
 	GetActorCode(robustAdd address.Address, height int64, key filTypes.TipSetKey) (cid.Cid, error)
 	GetRobustAddress(shortAdd address.Address) (string, error)
 	GetShortAddress(robustAdd address.Address) (string, error)
-	StoreAddressInfo(info types.AddressInfo)
+	StoreAddressInfo(info types2.AddressInfo)
 }
 
 // Cache In-memory database
@@ -123,7 +123,7 @@ func (m *Cache) StoreShortRobust(short string, robust string) {
 	m.shortRobustMap.Set(short, robust)
 }
 
-func (m Cache) StoreAddressInfo(info types.AddressInfo) {
+func (m Cache) StoreAddressInfo(info types2.AddressInfo) {
 	m.StoreRobustShort(info.Robust, info.Short)
 	m.StoreShortRobust(info.Short, info.Robust)
 	m.storeActorCode(info.Robust, info.ActorCid)

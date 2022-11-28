@@ -1,4 +1,4 @@
-package parser
+package types
 
 import (
 	"github.com/ipfs/go-cid"
@@ -69,18 +69,16 @@ func (a AddressInfo) GetAddress() string {
 }
 
 type TransactionFeeInfo struct {
-	// TxHash is the identifier for this transaction
-	TxHash string
-	// MethodName is the method requested to be executed
-	MethodName string
-	// TotalCost is the total fee payed by the sender. Expressed in [FIL]
-	TotalCost uint64
+	// TotalCost is the total fee paid by the sender. Expressed in [FIL]
+	TotalCost          uint64
+	OverestimationBurn uint64
+	MinerTip           uint64
+	// BaseFeeBurn is this block's burned fee. Expressed in [FIL]
+	BaseFeeBurn uint64
 	// GasUsage is the amount of GAS used to execute this transaction. Expressed in units of [GAS]
 	GasUsage uint64
 	// GasLimit is the maximum amount of gas that this transaction can use. Expressed in units of [GAS]
 	GasLimit int64
-	// GasPremium is the amount if FIL payed to the miner per unit of GAS. Expressed in [FIL/GAS]
+	// GasPremium is the amount if FIL paid to the miner per unit of GAS. Expressed in [FIL/GAS]
 	GasPremium uint64
-	// BaseFeeBurn is this block's burned fee. Expressed in [FIL]
-	BaseFeeBurn uint64
 }

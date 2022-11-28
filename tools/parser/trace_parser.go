@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/go-state-types/builtin/v10/eam"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
+	types2 "github.com/zondax/filecoin-indexing-rosetta-proxy/tools/parser/types"
 	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	"github.com/zondax/rosetta-filecoin-lib/actors"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
@@ -34,9 +33,9 @@ func NewTransactionParser(rpcClient api.FullNode) *TransactionParser {
 	}
 }
 
-func (t *TransactionParser) BuildTransactions(states *api.ComputeStateOutput, rawTipset filTypes.TipSet) ([]*Transaction, *types.AddressInfoMap) {
-	var discoveredAddresses = types.NewAddressInfoMap()
-	var transactions []*Transaction
+func (t *TransactionParser) BuildTransactions(states *api.ComputeStateOutput, rawTipset *types2.ExtendedTipSet) ([]*types2.Transaction, *types2.AddressInfoMap) {
+	var discoveredAddresses = types2.NewAddressInfoMap()
+	var transactions []*types2.Transaction
 
 	for i := range states.Trace {
 		trace := states.Trace[i]
@@ -49,71 +48,68 @@ func (t *TransactionParser) BuildTransactions(states *api.ComputeStateOutput, ra
 		t.ProcessTrace(&trace.ExecutionTrace, trace.MsgCid, transactions, rawTipset, &discoveredAddresses)
 		// Add the corresponding "Fee" operation
 		if !trace.GasCost.TotalCost.NilOrZero() {
-
-			feeTx := t.BuildFeeTx(trace)
-
-			transactions = append(transactions, txFee)
-
-			transactions = AppendOp(transactions, tools.TotalFeeOp, trace.Msg.From.String(),
-				trace.GasCost.TotalCost.Neg().String(), txStatus, false, nil)
-
-			transactions = AppendOp(transactions, tools.OverEstimationBurnOp, trace.Msg.From.String(),
-				trace.GasCost.OverEstimationBurn.Neg().String(), txStatus, false, nil)
-
-			transactions = AppendOp(transactions, tools.MinerFeeOp, trace.Msg.From.String(),
-				trace.GasCost.MinerTip.Neg().String(), txStatus, false, nil)
-
-			transactions = AppendOp(transactions, tools.BurnFeeOp, trace.Msg.From.String(),
-				trace.GasCost.BaseFeeBurn.Neg().String(), txStatus, false, nil)
+			feeTxs := t.BuildFeeTx(trace, rawTipset)
+			transactions = append(transactions, feeTxs...)
 		}
 	}
 	return transactions, &discoveredAddresses
 }
 
-func (t *TransactionParser) BuildFeeTx(trace *api.InvocResult, height int64, key filTypes.TipSetKey) *Transaction {
-	amount := GetCastedAmount(trace.Msg.Value.String())
+func (t *TransactionParser) BuildFeeTx(trace *api.InvocResult, rawTipset *types2.ExtendedTipSet) []*types2.Transaction {
+	var txs = make([]*types2.Transaction, 0)
 
-	TransactionFeeInfo{
-		TxHash:      "",
-		MethodName:  "",
-		TotalCost:   0,
-		GasUsage:    0,
-		GasLimit:    0,
-		GasPremium:  0,
-		BaseFeeBurn: 0,
+	feeMeta := types2.TransactionFeeInfo{
+		TotalCost:          trace.GasCost.TotalCost.Uint64(),
+		OverestimationBurn: trace.GasCost.OverEstimationBurn.Uint64(),
+		MinerTip:           trace.GasCost.MinerTip.Uint64(),
+		GasUsage:           trace.GasCost.GasUsed.Uint64(),
+		GasLimit:           trace.Msg.GasLimit,
+		GasPremium:         trace.Msg.GasPremium.Uint64(),
+		BaseFeeBurn:        trace.GasCost.BaseFeeBurn.Uint64(),
 	}
 
-	feeTx := &Transaction{
+	feeMetaJson, _ := json.Marshal(feeMeta)
+
+	// Fee tx
+	feeTx := &types2.Transaction{
 		Height:      int64(rawTipset.TipSet.Height()),
 		TxTimestamp: int64(rawTipset.TipSet.MinTimestamp()),
-		TxHash:      tx.TransactionIdentifier.Hash,
-		TxFrom:      op.Account.Address,
-		Amount:      amount,
-		TxType:      op.Type,
-		Status:      *op.Status,
-		TxMetadata:  baseTxType,
-		TxParams:    "",
+		TxHash:      trace.MsgCid.String(),
+		TxFrom:      trace.Msg.From.String(),
+		Amount:      GetCastedAmount(trace.GasCost.TotalCost.String()),
+		TxType:      tools.TotalFeeOp,
+		Status:      TransactionStatusOk,
+		TxMetadata:  string(feeMetaJson),
 	}
 
-	switch op.Type {
-	case tools.MinerFeeOp:
-		// Search the miner who mined this tx
-		blocks, ok := rawTipset.BlockMessages[feeTx.TxHash]
-		if !ok {
-			zap.S().Errorf("Warning: could not find tx hash '%s' in rawTipsetData!", feeTx.TxHash)
-			break
-		}
-		// The miner who mined the first block where this tx was included on, gets the fee
-		feeTx.TxTo = blocks[0].BlockMiner
-	case tools.BurnFeeOp, tools.OverEstimationBurnOp:
-		feeTx.TxTo = types.BurnAddress
+	txs = append(txs, feeTx)
+
+	// Miner tip tx
+	// Search the miner who mined this tx
+	blocks, ok := rawTipset.BlockMessages[feeTx.TxHash]
+	if !ok || len(blocks) == 0 {
+		zap.S().Errorf("Warning: could not find tx hash '%s' in rawTipsetData!. Could not build MinerTip tx", feeTx.TxHash)
+		return txs
 	}
 
-	return feeTx
+	miner := blocks[0].BlockMiner
+
+	minerTipTx := &types2.Transaction{
+		Height:      int64(rawTipset.TipSet.Height()),
+		TxTimestamp: int64(rawTipset.TipSet.MinTimestamp()),
+		TxHash:      trace.MsgCid.String(),
+		TxTo:        miner,
+		Amount:      GetCastedAmount(trace.GasCost.MinerTip.String()),
+		TxType:      tools.MinerFeeOp,
+		Status:      TransactionStatusOk,
+	}
+	txs = append(txs, minerTipTx)
+
+	return txs
 }
 
-func (t *TransactionParser) ProcessTrace(trace *filTypes.ExecutionTrace, msgCid cid.Cid, transactions []*Transaction, rawTipset filTypes.TipSet,
-	addresses *types.AddressInfoMap) {
+func (t *TransactionParser) ProcessTrace(trace *filTypes.ExecutionTrace, msgCid cid.Cid, transactions []*types2.Transaction, rawTipset *types2.ExtendedTipSet,
+	addresses *types2.AddressInfoMap) {
 
 	if trace.Msg == nil {
 		return
@@ -135,7 +131,7 @@ func (t *TransactionParser) ProcessTrace(trace *filTypes.ExecutionTrace, msgCid 
 	appendAddressInfo(addresses, fromAdd, toAdd)
 
 	// Basic tx info
-	tx := &Transaction{
+	tx := &types2.Transaction{
 		Height:      int64(rawTipset.Height()),
 		TxTimestamp: int64(rawTipset.MinTimestamp()),
 		TxHash:      trace.Msg.Cid().String(),
@@ -172,6 +168,8 @@ func (t *TransactionParser) ProcessTrace(trace *filTypes.ExecutionTrace, msgCid 
 			metadata["ethAdd"] = "0x" + hex.EncodeToString(result.EthAddress[:])
 			metadata["cid"] = msgCid.String()
 			metadata["ethHash"] = ethHash.String()
+			metaJson, _ := json.Marshal(metadata)
+			tx.TxMetadata = string(metaJson)
 		}
 	case "AddBalance":
 		{
@@ -184,24 +182,23 @@ func (t *TransactionParser) ProcessTrace(trace *filTypes.ExecutionTrace, msgCid 
 		}
 	case "CreateMiner":
 		{
-			createdActor, err := searchforactorcreation(trace.Msg, trace.MsgRct, height, key, lib)
+			createdActor, err := t.searchForActorCreation(trace.Msg, trace.MsgRct, int64(rawTipset.Height()), rawTipset.Key())
 			if err != nil {
 				rosetta.Logger.Errorf("Could not parse 'CreateMiner' params, err: %v", err)
 				break
 			}
+			metadata := make(map[string]interface{})
+			metadata["CreatedMiner"] = createdActor.Robust
+			metadataJson, _ := json.Marshal(metadata)
+			tx.TxMetadata = string(metadataJson)
 			appendAddressInfo(addresses, *createdActor)
 		}
 	case "Exec":
 		{
-			*transactions = AppendOp(*transactions, baseMethod, fromAdd.GetAddress(),
-				trace.Msg.Value.Neg().String(), txStatus, false, nil)
-			*transactions = AppendOp(*transactions, baseMethod, toAdd.GetAddress(),
-				trace.Msg.Value.String(), txStatus, true, nil)
-
 			// Check if this Exec contains actor creation event
-			createdActor, err := searchForActorCreation(trace.Msg, trace.MsgRct, height, key, lib)
+			createdActor, err := t.searchForActorCreation(trace.Msg, trace.MsgRct, int64(rawTipset.Height()), rawTipset.Key())
 			if err != nil {
-				rosetta.Logger.Errorf("Could not parse Exec params, err: %v", err)
+				zap.S().Errorf("Could not parse Exec params, err: %v", err)
 				break
 			}
 
@@ -213,74 +210,76 @@ func (t *TransactionParser) ProcessTrace(trace *filTypes.ExecutionTrace, msgCid 
 			appendAddressInfo(addresses, *createdActor)
 
 			// Check if the created actor is of multisig type and if it was also funded
-			if lib.BuiltinActors.IsActor(createdActor.ActorCid, actors.ActorMultisigName) &&
+			if t.rosettaLib.BuiltinActors.IsActor(createdActor.ActorCid, actors.ActorMultisigName) &&
 				!trace.Msg.Value.NilOrZero() {
-				from := toAdd.Short
-				to := createdActor.Short
 
-				*transactions = AppendOp(*transactions, "Exec", from,
-					trace.Msg.Value.Neg().String(), txStatus, true, nil)
-				*transactions = AppendOp(*transactions, "Exec", to,
-					trace.Msg.Value.String(), txStatus, true, nil)
+				txMsigFund := &types2.Transaction{
+					Height:      int64(rawTipset.Height()),
+					TxTimestamp: int64(rawTipset.MinTimestamp()),
+					TxHash:      trace.Msg.Cid().String(),
+					TxFrom:      fromAdd.GetAddress(),
+					TxTo:        createdActor.Robust,
+					Amount:      GetCastedAmount(trace.Msg.Value.String()),
+					TxType:      baseMethod,
+					Status:      txStatus,
+				}
+
+				transactions = append(transactions, txMsigFund)
 			}
 		}
 	case "Propose":
 		{
-			params, err := ParseProposeParams(trace.Msg, height, key, lib)
-			if err != nil {
-				rosetta.Logger.Errorf("Could not parse message params for %v, error: %v", baseMethod, err.Error())
-				break
-			}
-
-			*transactions = AppendOp(*transactions, baseMethod, fromAdd.GetAddress(),
-				"0", txStatus, false, &params)
-			*transactions = AppendOp(*transactions, baseMethod, toAdd.GetAddress(),
-				"0", txStatus, true, &params)
+			//params, err := ParseProposeParams(trace.Msg, height, key, lib)
+			//if err != nil {
+			//	rosetta.Logger.Errorf("Could not parse message params for %v, error: %v", baseMethod, err.Error())
+			//	break
+			//}
+			//
+			//*transactions = AppendOp(*transactions, baseMethod, fromAdd.GetAddress(),
+			//	"0", txStatus, false, &params)
+			//*transactions = AppendOp(*transactions, baseMethod, toAdd.GetAddress(),
+			//	"0", txStatus, true, &params)
 		}
 	case "SwapSigner", "AddSigner", "RemoveSigner":
 		{
-			params, err := ParseMsigParams(trace.Msg, height, key, lib)
-			if err == nil {
-				var paramsMap map[string]interface{}
-				if err := json.Unmarshal([]byte(params), &paramsMap); err == nil {
-					switch baseMethod {
-					case "SwapSigner":
-						{
-							*transactions = AppendOp(*transactions, baseMethod, fromAdd.GetAddress(),
-								"0", txStatus, false, &paramsMap)
-							*transactions = AppendOp(*transactions, baseMethod, toAdd.GetAddress(),
-								"0", txStatus, true, &paramsMap)
-						}
-					case "AddSigner", "RemoveSigner":
-						{
-							*transactions = AppendOp(*transactions, baseMethod, fromAdd.GetAddress(),
-								"0", txStatus, false, &paramsMap)
-							*transactions = AppendOp(*transactions, baseMethod, toAdd.GetAddress(),
-								"0", txStatus, true, &paramsMap)
-						}
-					}
-
-				} else {
-					rosetta.Logger.Error("Could not parse message params for", baseMethod)
-				}
-			}
+			//params, err := ParseMsigParams(trace.Msg, height, key, lib)
+			//if err == nil {
+			//	var paramsMap map[string]interface{}
+			//	if err := json.Unmarshal([]byte(params), &paramsMap); err == nil {
+			//		switch baseMethod {
+			//		case "SwapSigner":
+			//			{
+			//				*transactions = AppendOp(*transactions, baseMethod, fromAdd.GetAddress(),
+			//					"0", txStatus, false, &paramsMap)
+			//				*transactions = AppendOp(*transactions, baseMethod, toAdd.GetAddress(),
+			//					"0", txStatus, true, &paramsMap)
+			//			}
+			//		case "AddSigner", "RemoveSigner":
+			//			{
+			//				*transactions = AppendOp(*transactions, baseMethod, fromAdd.GetAddress(),
+			//					"0", txStatus, false, &paramsMap)
+			//				*transactions = AppendOp(*transactions, baseMethod, toAdd.GetAddress(),
+			//					"0", txStatus, true, &paramsMap)
+			//			}
+			//		}
+			//
+			//	} else {
+			//		rosetta.Logger.Error("Could not parse message params for", baseMethod)
+			//	}
+			//}
 		}
 	case "AwardBlockReward", "ApplyRewards", "OnDeferredCronEvent",
 		"PreCommitSector", "ProveCommitSector", "SubmitWindowedPoSt",
 		"DeclareFaultsRecovered", "ChangeWorkerAddress", "PreCommitSectorBatch",
 		"ProveCommitAggregate", "ProveReplicaUpdates":
 		{
-			*transactions = AppendOp(*transactions, baseMethod, fromAdd.GetAddress(),
-				trace.Msg.Value.Neg().String(), txStatus, false, nil)
-			*transactions = AppendOp(*transactions, baseMethod, toAdd.GetAddress(),
-				trace.Msg.Value.String(), txStatus, true, nil)
+			// We don't add anything here to tx
+			break
 		}
 	case "Approve", "Cancel":
 		{
-			*transactions = AppendOp(*transactions, baseMethod, fromAdd.GetAddress(),
-				trace.Msg.Value.Neg().String(), txStatus, false, nil)
-			*transactions = AppendOp(*transactions, baseMethod, toAdd.GetAddress(),
-				trace.Msg.Value.String(), txStatus, true, nil)
+			// We don't add anything here to tx
+			break
 		}
 	}
 
@@ -295,11 +294,11 @@ func (t *TransactionParser) ProcessTrace(trace *filTypes.ExecutionTrace, msgCid 
 	}
 }
 
-func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageReceipt,
-	height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (*types.AddressInfo, error) {
+func (t *TransactionParser) searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageReceipt,
+	height int64, key filTypes.TipSetKey) (*types2.AddressInfo, error) {
 
-	toAddressInfo := tools.GetActorAddressInfo(msg.To, height, key, lib)
-	actorName, err := lib.BuiltinActors.GetActorNameFromCid(toAddressInfo.ActorCid)
+	toAddressInfo := tools.GetActorAddressInfo(msg.To, height, key, t.rosettaLib)
+	actorName, err := t.rosettaLib.BuiltinActors.GetActorNameFromCid(toAddressInfo.ActorCid)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +310,7 @@ func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageRece
 			if err != nil {
 				return nil, err
 			}
-			createdActorName, err := lib.BuiltinActors.GetActorNameFromCid(params.CodeCID)
+			createdActorName, err := t.rosettaLib.BuiltinActors.GetActorNameFromCid(params.CodeCID)
 			if err != nil {
 				return nil, err
 			}
@@ -323,7 +322,7 @@ func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageRece
 						return nil, err
 					}
 
-					return &types.AddressInfo{
+					return &types2.AddressInfo{
 						Short:     execReturn.IDAddress.String(),
 						Robust:    execReturn.RobustAddress.String(),
 						ActorCid:  params.CodeCID,
@@ -340,7 +339,7 @@ func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageRece
 			if err != nil {
 				return nil, err
 			}
-			return &types.AddressInfo{
+			return &types2.AddressInfo{
 				Short:     execReturn.IDAddress.String(),
 				Robust:    execReturn.RobustAddress.String(),
 				ActorType: "miner",
@@ -351,41 +350,7 @@ func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageRece
 	}
 }
 
-func AppendOp(ops []*rosettaTypes.Operation, opType string, account string, amount string, status string, relateOp bool, metadata *map[string]interface{}) []*rosettaTypes.Operation {
-	opIndex := int64(len(ops))
-	op := &rosettaTypes.Operation{
-		OperationIdentifier: &rosettaTypes.OperationIdentifier{
-			Index: opIndex,
-		},
-		Type:   opType,
-		Status: &status,
-		Account: &rosettaTypes.AccountIdentifier{
-			Address: account,
-		},
-		Amount: &rosettaTypes.Amount{
-			Value:    amount,
-			Currency: rosetta.GetCurrencyData(),
-		},
-	}
-
-	// Add metadata
-	if metadata != nil {
-		op.Metadata = *metadata
-	}
-
-	// Add related operation
-	if relateOp && opIndex > 0 {
-		op.RelatedOperations = []*rosettaTypes.OperationIdentifier{
-			{
-				Index: opIndex - 1,
-			},
-		}
-	}
-
-	return append(ops, op)
-}
-
-func appendAddressInfo(addressMap *types.AddressInfoMap, info ...types.AddressInfo) {
+func appendAddressInfo(addressMap *types2.AddressInfoMap, info ...types2.AddressInfo) {
 	if addressMap == nil {
 		return
 	}
