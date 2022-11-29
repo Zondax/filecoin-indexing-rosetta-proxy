@@ -16,6 +16,7 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/zondax/rosetta-filecoin-lib v1.1800.0
 	github.com/zondax/rosetta-filecoin-proxy v1.1800.0
+	go.uber.org/zap v1.22.0
 )
 
 replace github.com/filecoin-project/lotus => github.com/filecoin-project/lotus v1.18.0-rc5.0.20221118204509-33d2629eeb84
@@ -164,7 +165,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.7.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	go.uber.org/zap v1.22.0 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/net v0.0.0-20220812174116-3211cb980234 // indirect

@@ -67,7 +67,7 @@ func newBlockchainRouter(
 	traceRetriever *parser.TraceRetriever,
 	rosettaLib *rosettaFilecoinLib.RosettaConstructionFilecoin,
 ) http.Handler {
-	accountAPIService := services.NewAccountAPIService(network, &api, rosettaLib)
+	accountAPIService := rosetta.NewAccountAPIService(network, &api, rosettaLib)
 	accountAPIController := server.NewAccountAPIController(
 		accountAPIService,
 		asserter,
