@@ -3,7 +3,6 @@ package parser
 import (
 	"encoding/json"
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
-	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
@@ -138,16 +137,20 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 		switch baseMethod {
 		case "AddBalance":
 			{
-				*operations = AppendFromTo(*operations, fromAdd.GetAddress(), toAdd.GetAddress(), baseMethod, opStatus,
-					trace.Msg.Value, nil)
+				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
+					trace.Msg.Value.Neg().String(), opStatus, false, nil)
+				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
+					trace.Msg.Value.String(), opStatus, true, nil)
 			}
 		case "Send":
 			{
 				metadata := make(map[string]interface{})
 				metadata["Params"] = trace.Msg.Params
 
-				*operations = AppendFromTo(*operations, fromAdd.GetAddress(), toAdd.GetAddress(), baseMethod, opStatus,
-					trace.Msg.Value, metadata)
+				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
+					trace.Msg.Value.Neg().String(), opStatus, false, &metadata)
+				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
+					trace.Msg.Value.String(), opStatus, true, &metadata)
 			}
 		case "CreateMiner":
 			{
@@ -160,8 +163,10 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 			}
 		case "Exec":
 			{
-				*operations = AppendFromTo(*operations, fromAdd.GetAddress(), toAdd.GetAddress(), baseMethod, opStatus,
-					trace.Msg.Value, nil)
+				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
+					trace.Msg.Value.Neg().String(), opStatus, false, nil)
+				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
+					trace.Msg.Value.String(), opStatus, true, nil)
 
 				// Check if this Exec contains actor creation event
 				createdActor, err := searchForActorCreation(trace.Msg, trace.MsgRct, height, key, lib)
@@ -197,8 +202,10 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 					break
 				}
 
-				*operations = AppendFromTo(*operations, fromAdd.GetAddress(), toAdd.GetAddress(), baseMethod, opStatus,
-					abi.NewTokenAmount(0), params)
+				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
+					"0", opStatus, false, &params)
+				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
+					"0", opStatus, true, &params)
 			}
 		case "SwapSigner", "AddSigner", "RemoveSigner":
 			{
@@ -209,13 +216,17 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 						switch baseMethod {
 						case "SwapSigner":
 							{
-								*operations = AppendFromTo(*operations, fromAdd.GetAddress(), toAdd.GetAddress(), baseMethod, opStatus,
-									abi.NewTokenAmount(0), paramsMap)
+								*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
+									"0", opStatus, false, &paramsMap)
+								*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
+									"0", opStatus, true, &paramsMap)
 							}
 						case "AddSigner", "RemoveSigner":
 							{
-								*operations = AppendFromTo(*operations, fromAdd.GetAddress(), toAdd.GetAddress(), baseMethod, opStatus,
-									abi.NewTokenAmount(0), paramsMap)
+								*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
+									"0", opStatus, false, &paramsMap)
+								*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
+									"0", opStatus, true, &paramsMap)
 							}
 						}
 
@@ -229,13 +240,17 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 			"DeclareFaultsRecovered", "ChangeWorkerAddress", "PreCommitSectorBatch",
 			"ProveCommitAggregate", "ProveReplicaUpdates":
 			{
-				*operations = AppendFromTo(*operations, fromAdd.GetAddress(), toAdd.GetAddress(), baseMethod, opStatus,
-					trace.Msg.Value, nil)
+				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
+					trace.Msg.Value.Neg().String(), opStatus, false, nil)
+				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
+					trace.Msg.Value.String(), opStatus, true, nil)
 			}
 		case "Approve", "Cancel":
 			{
-				*operations = AppendFromTo(*operations, fromAdd.GetAddress(), toAdd.GetAddress(), baseMethod, opStatus,
-					trace.Msg.Value, nil)
+				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
+					trace.Msg.Value.Neg().String(), opStatus, false, nil)
+				*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
+					trace.Msg.Value.String(), opStatus, true, nil)
 			}
 		}
 	}
@@ -305,7 +320,8 @@ func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageRece
 	}
 }
 
-func BuildOperation(opIndex int64, opType, account, amount, status string, relateOp bool, metadata map[string]interface{}) *rosettaTypes.Operation {
+func AppendOp(ops []*rosettaTypes.Operation, opType string, account string, amount string, status string, relateOp bool, metadata *map[string]interface{}) []*rosettaTypes.Operation {
+	opIndex := int64(len(ops))
 	op := &rosettaTypes.Operation{
 		OperationIdentifier: &rosettaTypes.OperationIdentifier{
 			Index: opIndex,
@@ -323,7 +339,7 @@ func BuildOperation(opIndex int64, opType, account, amount, status string, relat
 
 	// Add metadata
 	if metadata != nil {
-		op.Metadata = metadata
+		op.Metadata = *metadata
 	}
 
 	// Add related operation
@@ -335,14 +351,5 @@ func BuildOperation(opIndex int64, opType, account, amount, status string, relat
 		}
 	}
 
-	return op
-}
-
-func AppendOp(ops []*rosettaTypes.Operation, opType, account, amount, status string, relateOp bool, metadata map[string]interface{}) []*rosettaTypes.Operation {
-	return append(ops, BuildOperation(int64(len(ops)), opType, account, amount, status, relateOp, metadata))
-}
-
-func AppendFromTo(ops []*rosettaTypes.Operation, fromAdd, toAdd, opType, status string, amount abi.TokenAmount, metadata map[string]interface{}) []*rosettaTypes.Operation {
-	ops = AppendOp(ops, opType, fromAdd, amount.Neg().String(), status, false, metadata)
-	return AppendOp(ops, opType, toAdd, amount.String(), status, true, metadata)
+	return append(ops, op)
 }
