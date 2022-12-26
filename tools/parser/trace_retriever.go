@@ -11,6 +11,7 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
+	"strconv"
 	"time"
 )
 
@@ -49,6 +50,34 @@ func (t *TraceRetriever) GetStateCompute(ctx context.Context, node *api.FullNode
 	}
 
 	return t.getLotusStateCompute(ctx, node, tipSet)
+}
+
+func (t *TraceRetriever) GetEthLogs(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) ([]EthLog, *rosettaTypes.Error) {
+	fromBlockHex := strconv.FormatUint(uint64(tipSet.Height()), 16)
+	res, err := (*node).EthGetLogs(ctx, &api.EthFilterSpec{
+		FromBlock: &fromBlockHex,
+		ToBlock:   &fromBlockHex,
+	})
+
+	if err != nil {
+		return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, err, true)
+	}
+
+	if len(res.Results) == 0 {
+		return nil, nil
+	}
+
+	logs := make([]EthLog, 0, len(res.Results))
+	for _, result := range res.Results {
+		var log EthLog
+		log, ok := result.(EthLog)
+		if !ok {
+			return nil, rosetta.BuildError(rosetta.ErrMalformedValue, err, true)
+		}
+		logs = append(logs, log)
+	}
+
+	return logs, nil
 }
 
 func (t *TraceRetriever) getLotusStateCompute(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) (*ComputeStateVersioned, *rosettaTypes.Error) {

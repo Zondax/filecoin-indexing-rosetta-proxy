@@ -148,7 +148,13 @@ func (s *BlockAPIService) Block(
 		if err != nil {
 			return nil, err
 		}
-		transactions, discoveredAddresses = parser.BuildTransactions(states, int64(tipSet.Height()), tipSet.Key(), s.rosettaLib)
+
+		ethLogs, err := s.traceRetriever.GetEthLogs(ctx, &s.node, tipSet)
+		if err != nil {
+			return nil, err
+		}
+
+		transactions, discoveredAddresses = parser.BuildTransactions(states, int64(tipSet.Height()), tipSet.Key(), ethLogs, s.rosettaLib)
 	}
 
 	// Add block metadata

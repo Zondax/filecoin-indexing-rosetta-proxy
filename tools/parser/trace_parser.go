@@ -31,7 +31,7 @@ func appendAddressInfo(addressMap *types.AddressInfoMap, info ...types.AddressIn
 	}
 }
 
-func BuildTransactions(states *ComputeStateVersioned, height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (*[]*rosettaTypes.Transaction, *types.AddressInfoMap) {
+func BuildTransactions(states *ComputeStateVersioned, height int64, key filTypes.TipSetKey, ethLogs []EthLog, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (*[]*rosettaTypes.Transaction, *types.AddressInfoMap) {
 	defer rosetta.TimeTrack(time.Now(), "[Proxy]TraceAnalysis")
 
 	var transactions []*rosettaTypes.Transaction
@@ -46,7 +46,7 @@ func BuildTransactions(states *ComputeStateVersioned, height int64, key filTypes
 		var operations []*rosettaTypes.Operation
 
 		// Analyze full trace recursively
-		ProcessTrace(&trace.ExecutionTrace, &trace.MsgCid, &operations, height, &discoveredAddresses, key, lib)
+		ProcessTrace(&trace.ExecutionTrace, &trace.MsgCid, ethLogs, &operations, height, &discoveredAddresses, key, lib)
 		if len(operations) > 0 {
 			// Add the corresponding "Fee" operation
 			if !trace.GasCost.TotalCost.NilOrZero() {
@@ -116,7 +116,7 @@ func BuildFee(states *api.ComputeStateOutput, height int64, key filTypes.TipSetK
 	return &fees
 }
 
-func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, operations *[]*rosettaTypes.Operation,
+func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, ethLogs []EthLog, operations *[]*rosettaTypes.Operation,
 	height int64, addresses *types.AddressInfoMap, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) {
 
 	if trace.Msg == nil {
@@ -144,6 +144,12 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, operation
 			metadata := make(map[string]interface{})
 			metadata["Params"] = "0x" + hex.EncodeToString(trace.Msg.Params)
 			metadata["Return"] = "0x" + hex.EncodeToString(trace.MsgRct.Return)
+
+			err, logs := searchEthLogs(ethLogs, trace.Msg)
+			if err != nil {
+				rosetta.Logger.Error("could not get ethLogs:", err.Error())
+			}
+			metadata["ethLogs"] = logs
 
 			*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
 				trace.Msg.Value.Neg().String(), opStatus, false, &metadata)
@@ -299,9 +305,25 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, operation
 	if opStatus == rosetta.OperationStatusOk {
 		for i := range trace.Subcalls {
 			subTrace := trace.Subcalls[i]
-			ProcessTrace(&subTrace, mainMsgCid, operations, height, addresses, key, lib)
+			ProcessTrace(&subTrace, mainMsgCid, ethLogs, operations, height, addresses, key, lib)
 		}
 	}
+}
+
+func searchEthLogs(logs []EthLog, msg *filTypes.Message) (error, []EthLog) {
+	ethHash, err := api.NewEthHashFromCid(msg.Cid())
+	if err != nil {
+		return err, nil
+	}
+
+	res := make([]EthLog, 0)
+	for _, log := range logs {
+		if log["transactionHash"] == ethHash.String() {
+			res = append(res, log)
+		}
+	}
+
+	return nil, res
 }
 
 func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageReceipt,
