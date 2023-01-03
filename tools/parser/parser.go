@@ -8,6 +8,7 @@ import (
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/shopspring/decimal"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
 	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
@@ -15,15 +16,17 @@ import (
 	"strings"
 )
 
-var (
-	burnAddress = "f099"
-)
-
-func hasMessage(trace *api.InvocResult) bool {
-	return trace.Msg != nil
+type Parser struct {
+	lib *rosettaFilecoinLib.RosettaConstructionFilecoin
 }
 
-func ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.TipSet, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (*[]*types.Transaction, error) {
+func NewParser(lib *rosettaFilecoinLib.RosettaConstructionFilecoin) *Parser {
+	return &Parser{
+		lib: lib,
+	}
+}
+
+func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.TipSet) (*[]*types.Transaction, error) {
 	var transactions []*types.Transaction
 	tipsetKey := tipSet.Key()
 	blockHash, err := rosetta.BuildTipSetKeyHash(tipsetKey)
@@ -34,7 +37,7 @@ func ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.TipSet, lib *
 		if !hasMessage(trace) {
 			continue
 		}
-		transaction, err := parseTrace(trace.Msg, trace.MsgRct, tipSet, *blockHash, trace.MsgCid.String(), tipsetKey, lib)
+		transaction, err := p.parseTrace(trace.Msg, trace.MsgRct, tipSet, *blockHash, trace.MsgCid.String(), tipsetKey)
 		if err != nil {
 			// TODO: logging
 			continue
@@ -42,8 +45,8 @@ func ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.TipSet, lib *
 		transactions = append(transactions, transaction)
 
 		// SubTransactions
-		transactions = append(transactions, parseSubTxs(trace.ExecutionTrace.Subcalls, tipSet, *blockHash,
-			trace.Msg.Cid().String(), tipsetKey, lib)...)
+		transactions = append(transactions, p.parseSubTxs(trace.ExecutionTrace.Subcalls, tipSet, *blockHash,
+			trace.Msg.Cid().String(), tipsetKey)...)
 
 		// Fees
 		minerTxs := feesTransactions(trace.Msg, tipSet.Blocks()[0].Miner.String(), transaction.TxHash, *blockHash,
@@ -54,30 +57,30 @@ func ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.TipSet, lib *
 	return &transactions, nil
 }
 
-func parseSubTxs(subTxs []filTypes.ExecutionTrace, tipSet *filTypes.TipSet, blockHash, txHash string, key filTypes.TipSetKey,
-	lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (txs []*types.Transaction) {
+func (p *Parser) parseSubTxs(subTxs []filTypes.ExecutionTrace, tipSet *filTypes.TipSet, blockHash, txHash string,
+	key filTypes.TipSetKey) (txs []*types.Transaction) {
 
 	for _, subTx := range subTxs {
-		subTransaction, err := parseTrace(subTx.Msg, subTx.MsgRct, tipSet, blockHash, txHash, key, lib)
+		subTransaction, err := p.parseTrace(subTx.Msg, subTx.MsgRct, tipSet, blockHash, txHash, key)
 		if err != nil {
 			continue
 		}
 		txs = append(txs, subTransaction)
-		txs = append(txs, parseSubTxs(subTx.Subcalls, tipSet, blockHash, txHash, key, lib)...)
+		txs = append(txs, p.parseSubTxs(subTx.Subcalls, tipSet, blockHash, txHash, key)...)
 	}
 	return
 }
 
-func parseTrace(msg *filTypes.Message, msgRct *filTypes.MessageReceipt, tipSet *filTypes.TipSet, blockHash, txHash string, key filTypes.TipSetKey,
-	lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (*types.Transaction, error) {
-	txType, err := tools.GetMethodName(msg, int64(tipSet.Height()), key, lib)
+func (p *Parser) parseTrace(msg *filTypes.Message, msgRct *filTypes.MessageReceipt, tipSet *filTypes.TipSet, blockHash, txHash string,
+	key filTypes.TipSetKey) (*types.Transaction, error) {
+	txType, err := tools.GetMethodName(msg, int64(tipSet.Height()), key, p.lib)
 	if err != nil {
 		txType = "unknown"
 	}
 	if !tools.IsOpSupported(txType) {
 		return nil, errors.New("operation not supported") // TODO: define errors
 	}
-	metadata, mErr := getMetadata(txType, msg, int64(tipSet.Height()), key, lib)
+	metadata, mErr := p.getMetadata(txType, msg, msgRct, int64(tipSet.Height()), key)
 	if mErr != nil {
 		// TODO: log
 	}
@@ -106,13 +109,13 @@ func parseTrace(msg *filTypes.Message, msgRct *filTypes.MessageReceipt, tipSet *
 func feesTransactions(msg *filTypes.Message, minerAddress, txHash, blockHash, txType string, gasCost api.MsgGasCost,
 	height uint64, timestamp int64) (feeTxs []*types.Transaction) {
 	feeTxs = append(feeTxs, newFeeTx(msg, "", txHash, blockHash, txType,
-		tools.TotalFeeOp, gasCost.TotalCost.String(), height, timestamp))
-	feeTxs = append(feeTxs, newFeeTx(msg, burnAddress, txHash, blockHash, txType,
-		tools.OverEstimationBurnOp, gasCost.OverEstimationBurn.String(), height, timestamp))
+		tools.TotalFeeOp, getCastedAmount(gasCost.TotalCost.String()), height, timestamp))
+	feeTxs = append(feeTxs, newFeeTx(msg, tools.BurnAddress, txHash, blockHash, txType,
+		tools.OverEstimationBurnOp, getCastedAmount(gasCost.OverEstimationBurn.String()), height, timestamp))
 	feeTxs = append(feeTxs, newFeeTx(msg, minerAddress, txHash, blockHash, txType,
-		tools.MinerFeeOp, gasCost.MinerTip.String(), height, timestamp))
-	feeTxs = append(feeTxs, newFeeTx(msg, burnAddress, txHash, blockHash, txType,
-		tools.BurnFeeOp, gasCost.BaseFeeBurn.String(), height, timestamp))
+		tools.MinerFeeOp, getCastedAmount(gasCost.MinerTip.String()), height, timestamp))
+	feeTxs = append(feeTxs, newFeeTx(msg, tools.BurnAddress, txHash, blockHash, txType,
+		tools.BurnFeeOp, getCastedAmount(gasCost.BaseFeeBurn.String()), height, timestamp))
 	return
 }
 
@@ -128,10 +131,14 @@ func newFeeTx(msg *filTypes.Message, txTo, txHash, blockHash, txType, feeType st
 		TxFrom:      msg.From.String(),
 		TxTo:        txTo,
 		Amount:      getCastedAmount(gasCost),
-		Status:      "OK",
+		Status:      "Ok",
 		TxType:      feeType,
 		TxMetadata:  txType,
 	}
+}
+
+func hasMessage(trace *api.InvocResult) bool {
+	return trace.Msg != nil
 }
 
 func getStatus(code string) string {
@@ -142,34 +149,41 @@ func getStatus(code string) string {
 	return code
 }
 
-func getMetadata(txType string, msg *filTypes.Message, height int64, key filTypes.TipSetKey,
-	lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (map[string]interface{}, error) {
+func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
 	var err error
-	switch txType {
-	case "Send":
-		metadata["Params"] = msg.Params
-	case "Propose":
-		metadata, err = ParseProposeParams(msg, height, key, lib)
-		if err != nil {
-			rosetta.Logger.Errorf("Could not parse message params for %v, error: %v", txType, err.Error())
-			return metadata, err
-		}
-	case "SwapSigner", "AddSigner", "RemoveSigner":
-		params, err := ParseMsigParams(msg, height, key, lib)
-		if err != nil {
-			return metadata, err
-		}
-		err = json.Unmarshal([]byte(params), &metadata)
-		if err != nil {
-			return metadata, err
-		}
-	case "Exec":
-		break
-	case "Constructor":
-		//	TODO: implement
+	actorCode, err := database.ActorsDB.GetActorCode(msg.To, height, key)
+	if err != nil {
+		return metadata, err
 	}
-	return metadata, nil
+	actor, err := p.lib.BuiltinActors.GetActorNameFromCid(actorCode)
+	if err != nil {
+		return metadata, err
+	}
+	switch actor {
+	case "init":
+		return p.parseInit(msg, msgRct, height, key)
+	case "cron":
+		return p.parseCron(msg, height, key)
+	case "account":
+		return p.parseAccount(msg, height, key)
+	case "storagepower":
+		return p.parseStoragepower(msg, height, key)
+	case "storageminer":
+		return p.parseStorageminer(msg, height, key)
+	case "storagemarket":
+		return p.parseStoragemarket(msg, height, key)
+	case "paymentchannel":
+		return p.parsePaymentchannel(msg, height, key)
+	case "multisig":
+		return p.parseMultisig(msg, height, key)
+	case "reward":
+		return p.parseReward(msg, height, key)
+	case "verifiedregistry":
+		return p.parseVerifiedregistry(msg, height, key)
+	default:
+		return metadata, errors.New("not a valid actor")
+	}
 }
 
 func parseParams(metadata map[string]interface{}) string {

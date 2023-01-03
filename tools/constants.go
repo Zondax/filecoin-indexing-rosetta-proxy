@@ -28,6 +28,8 @@ const (
 	OverEstimationBurnOp = "OverEstimationBurn"
 	MinerFeeOp           = "MinerFee"
 	BurnFeeOp            = "BurnFee"
+
+	BurnAddress = "f099"
 )
 
 // SupportedOperations operations that will be parsed
@@ -60,7 +62,6 @@ var SupportedOperations = map[string]bool{
 	"AddVerifiedClient":      true, // MethodsVerifiedRegistry
 	"AddVerifier":            true, // MethodsVerifiedRegistry
 	"RemoveVerifier":         true, // MethodsVerifiedRegistry
-	"Constructor":            true,
 }
 
 func GetSupportedOps() []string {
