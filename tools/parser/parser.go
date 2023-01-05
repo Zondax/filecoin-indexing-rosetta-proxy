@@ -17,12 +17,14 @@ import (
 )
 
 type Parser struct {
-	lib *rosettaFilecoinLib.RosettaConstructionFilecoin
+	lib     *rosettaFilecoinLib.RosettaConstructionFilecoin
+	apiNode api.FullNode
 }
 
-func NewParser(lib *rosettaFilecoinLib.RosettaConstructionFilecoin) *Parser {
+func NewParser(lib *rosettaFilecoinLib.RosettaConstructionFilecoin, apiNode api.FullNode) *Parser {
 	return &Parser{
-		lib: lib,
+		lib:     lib,
+		apiNode: apiNode,
 	}
 }
 
@@ -37,9 +39,11 @@ func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.T
 		if !hasMessage(trace) {
 			continue
 		}
-		transaction, err := p.parseTrace(trace.Msg, trace.MsgRct, tipSet, *blockHash, trace.MsgCid.String(), tipsetKey)
+		if trace.MsgCid.String() == "bafy2bzaceb3slgxsl3h6oeixe45qep7vikg4roqtdvez6wyi7xjvontpebzo4" {
+			fmt.Print("hello")
+		}
+		transaction, err := p.parseTrace(trace.ExecutionTrace, tipSet, *blockHash, trace.MsgCid.String(), tipsetKey)
 		if err != nil {
-			// TODO: logging
 			continue
 		}
 		transactions = append(transactions, transaction)
@@ -61,7 +65,7 @@ func (p *Parser) parseSubTxs(subTxs []filTypes.ExecutionTrace, tipSet *filTypes.
 	key filTypes.TipSetKey) (txs []*types.Transaction) {
 
 	for _, subTx := range subTxs {
-		subTransaction, err := p.parseTrace(subTx.Msg, subTx.MsgRct, tipSet, blockHash, txHash, key)
+		subTransaction, err := p.parseTrace(subTx, tipSet, blockHash, txHash, key)
 		if err != nil {
 			continue
 		}
@@ -71,16 +75,16 @@ func (p *Parser) parseSubTxs(subTxs []filTypes.ExecutionTrace, tipSet *filTypes.
 	return
 }
 
-func (p *Parser) parseTrace(msg *filTypes.Message, msgRct *filTypes.MessageReceipt, tipSet *filTypes.TipSet, blockHash, txHash string,
+func (p *Parser) parseTrace(trace filTypes.ExecutionTrace, tipSet *filTypes.TipSet, blockHash, txHash string,
 	key filTypes.TipSetKey) (*types.Transaction, error) {
-	txType, err := tools.GetMethodName(msg, int64(tipSet.Height()), key, p.lib)
+	txType, err := tools.GetMethodName(trace.Msg, int64(tipSet.Height()), key, p.lib)
 	if err != nil {
 		txType = "unknown"
 	}
 	if !tools.IsOpSupported(txType) {
-		return nil, errors.New("operation not supported") // TODO: define errors
+		return nil, errors.New("operation not supported")
 	}
-	metadata, mErr := p.getMetadata(txType, msg, msgRct, int64(tipSet.Height()), key)
+	metadata, mErr := p.getMetadata(txType, trace.Msg, trace.MsgRct, int64(tipSet.Height()), key)
 	if mErr != nil {
 		// TODO: log
 	}
@@ -95,10 +99,10 @@ func (p *Parser) parseTrace(msg *filTypes.Message, msgRct *filTypes.MessageRecei
 		},
 		TxTimestamp: int64(tipSet.MinTimestamp()),
 		TxHash:      txHash,
-		TxFrom:      msg.From.String(),
-		TxTo:        msg.To.String(),
-		Amount:      getCastedAmount(msg.Value.String()),
-		Status:      getStatus(msgRct.ExitCode.String()),
+		TxFrom:      trace.Msg.From.String(),
+		TxTo:        trace.Msg.To.String(),
+		Amount:      getCastedAmount(trace.Msg.Value.String()),
+		Status:      getStatus(trace.MsgRct.ExitCode.String()),
 		TxType:      txType,
 		TxMetadata:  string(jsonMetadata),
 		TxParams:    fmt.Sprintf("%v", params),
@@ -130,7 +134,7 @@ func newFeeTx(msg *filTypes.Message, txTo, txHash, blockHash, txType, feeType st
 		TxHash:      txHash,
 		TxFrom:      msg.From.String(),
 		TxTo:        txTo,
-		Amount:      getCastedAmount(gasCost),
+		Amount:      gasCost,
 		Status:      "Ok",
 		TxType:      feeType,
 		TxMetadata:  txType,
@@ -162,25 +166,25 @@ func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTy
 	}
 	switch actor {
 	case "init":
-		return p.parseInit(msg, msgRct, height, key)
+		return p.parseInit(txType, msg, msgRct, height, key)
 	case "cron":
-		return p.parseCron(msg, height, key)
+		return p.parseCron(txType, msg)
 	case "account":
-		return p.parseAccount(msg, height, key)
+		return p.parseAccount(txType, msg)
 	case "storagepower":
-		return p.parseStoragepower(msg, height, key)
+		return p.parseStoragepower(txType, msg, msgRct, height, key)
 	case "storageminer":
-		return p.parseStorageminer(msg, height, key)
+		return p.parseStorageminer(txType, msg, height, key)
 	case "storagemarket":
-		return p.parseStoragemarket(msg, height, key)
+		return p.parseStoragemarket(txType, msg)
 	case "paymentchannel":
-		return p.parsePaymentchannel(msg, height, key)
+		return p.parsePaymentchannel(txType, msg)
 	case "multisig":
-		return p.parseMultisig(msg, height, key)
+		return p.parseMultisig(txType, msg, height, key)
 	case "reward":
-		return p.parseReward(msg, height, key)
+		return p.parseReward(txType, msg)
 	case "verifiedregistry":
-		return p.parseVerifiedregistry(msg, height, key)
+		return p.parseVerifiedregistry(txType, msg)
 	default:
 		return metadata, errors.New("not a valid actor")
 	}

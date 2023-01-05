@@ -8,7 +8,6 @@ import (
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	initActor "github.com/filecoin-project/specs-actors/v7/actors/builtin/init"
 	"github.com/filecoin-project/specs-actors/v7/actors/builtin/power"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	"github.com/zondax/rosetta-filecoin-lib/actors"
@@ -135,24 +134,16 @@ func ParseMsigParams(msg *filTypes.Message, height int64, key filTypes.TipSetKey
 	return parsedParams, nil
 }
 
-func (p *Parser) parseAccount(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	method, err := p.getMethodName(msg, height, key, p.lib)
-	if err != nil {
-		return nil, err
-	}
-	switch method {
+func (p *Parser) parseAccount(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
+	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
 	}
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) parseInit(msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	method, err := p.getMethodName(msg, height, key, p.lib)
-	if err != nil {
-		return map[string]interface{}{}, err
-	}
-	switch method {
+func (p *Parser) parseInit(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
+	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
 	case "Exec":
@@ -161,37 +152,24 @@ func (p *Parser) parseInit(msg *filTypes.Message, msgRct *filTypes.MessageReceip
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) parseCron(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	method, err := p.getMethodName(msg, height, key, p.lib)
-	if err != nil {
-		return map[string]interface{}{}, err
-	}
-	switch method {
+func (p *Parser) parseCron(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
+	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
 	}
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) parseReward(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	method, err := p.getMethodName(msg, height, key, p.lib)
-	if err != nil {
-		return map[string]interface{}{}, err
-	}
-	switch method {
+func (p *Parser) parseReward(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
+	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
 	}
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) parseMultisig(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	method, err := p.getMethodName(msg, height, key, p.lib)
-	if err != nil {
-		return map[string]interface{}{}, err
-	}
-	switch method {
-
+func (p *Parser) parseMultisig(txType string, msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
+	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
 	case "Propose":
@@ -206,24 +184,16 @@ func (p *Parser) parseMultisig(msg *filTypes.Message, height int64, key filTypes
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) parsePaymentchannel(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	method, err := p.getMethodName(msg, height, key, p.lib)
-	if err != nil {
-		return map[string]interface{}{}, err
-	}
-	switch method {
+func (p *Parser) parsePaymentchannel(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
+	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
 	}
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) parseStoragemarket(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	method, err := p.getMethodName(msg, height, key, p.lib)
-	if err != nil {
-		return map[string]interface{}{}, err
-	}
-	switch method {
+func (p *Parser) parseStoragemarket(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
+	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
 	case "AddBalance":
@@ -231,12 +201,9 @@ func (p *Parser) parseStoragemarket(msg *filTypes.Message, height int64, key fil
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) parseStoragepower(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	method, err := p.getMethodName(msg, height, key, p.lib)
-	if err != nil {
-		return map[string]interface{}{}, err
-	}
-	switch method {
+func (p *Parser) parseStoragepower(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
+	height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
+	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
 	case "CreateMiner":
@@ -245,12 +212,8 @@ func (p *Parser) parseStoragepower(msg *filTypes.Message, height int64, key filT
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) parseStorageminer(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	method, err := p.getMethodName(msg, height, key, p.lib)
-	if err != nil {
-		return map[string]interface{}{}, err
-	}
-	switch method {
+func (p *Parser) parseStorageminer(txType string, msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
+	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
 	case "AwardBlockReward":
@@ -260,6 +223,7 @@ func (p *Parser) parseStorageminer(msg *filTypes.Message, height int64, key filT
 	case "SubmitWindowedPoSt":
 	case "ApplyRewards":
 	case "WithdrawBalance":
+		return p.parseWithdrawBalance(msg, height, key)
 	case "ChangeOwnerAddress":
 	case "ChangeWorkerAddress":
 	case "ConfirmUpdateWorkerKey":
@@ -271,12 +235,8 @@ func (p *Parser) parseStorageminer(msg *filTypes.Message, height int64, key filT
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) parseVerifiedregistry(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	method, err := p.getMethodName(msg, height, key, p.lib)
-	if err != nil {
-		return map[string]interface{}{}, err
-	}
-	switch method {
+func (p *Parser) parseVerifiedregistry(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
+	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
 	case "AddVerifiedClient":
@@ -284,17 +244,6 @@ func (p *Parser) parseVerifiedregistry(msg *filTypes.Message, height int64, key 
 	case "RemoveVerifier":
 	}
 	return map[string]interface{}{}, errors.New("not method")
-}
-
-func (p *Parser) getMethodName(msg *filTypes.Message, height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (string, error) {
-	method, err := tools.GetMethodName(msg, height, key, lib)
-	if err != nil {
-		return "", errors.New(err.Message)
-	}
-	if _, ok := tools.SupportedOperations[method]; !ok {
-		return "", errors.New("not supported operation")
-	}
-	return method, nil
 }
 
 func (p *Parser) parseSend(msg *filTypes.Message) map[string]interface{} {
@@ -314,6 +263,12 @@ func (p *Parser) parseMsigParams(msg *filTypes.Message, height int64, key filTyp
 		return map[string]interface{}{}, err
 	}
 	return paramsMap, nil
+}
+
+func (p *Parser) parseWithdrawBalance(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
+	metadata["Params"] = msg.Params
+	return metadata, nil
 }
 
 //func (p *Parser) parseExec(msg *filTypes.Message) (map[string]interface{}, error) {
