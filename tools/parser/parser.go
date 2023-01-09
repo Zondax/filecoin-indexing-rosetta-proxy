@@ -17,30 +17,28 @@ import (
 )
 
 type Parser struct {
-	lib     *rosettaFilecoinLib.RosettaConstructionFilecoin
-	apiNode api.FullNode
+	lib       *rosettaFilecoinLib.RosettaConstructionFilecoin
+	addresses types.AddressInfoMap
 }
 
-func NewParser(lib *rosettaFilecoinLib.RosettaConstructionFilecoin, apiNode api.FullNode) *Parser {
+func NewParser(lib *rosettaFilecoinLib.RosettaConstructionFilecoin) *Parser {
 	return &Parser{
-		lib:     lib,
-		apiNode: apiNode,
+		lib:       lib,
+		addresses: types.NewAddressInfoMap(),
 	}
 }
 
-func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.TipSet) (*[]*types.Transaction, error) {
+func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.TipSet) (*[]*types.Transaction, *types.AddressInfoMap, error) {
 	var transactions []*types.Transaction
+	p.addresses = types.NewAddressInfoMap()
 	tipsetKey := tipSet.Key()
 	blockHash, err := rosetta.BuildTipSetKeyHash(tipsetKey)
 	if err != nil {
-		return nil, errors.New("unable to get block hash") // TODO: define errors
+		return nil, nil, errors.New("unable to get block hash") // TODO: define errors
 	}
 	for _, trace := range traces {
 		if !hasMessage(trace) {
 			continue
-		}
-		if trace.MsgCid.String() == "bafy2bzaceb3slgxsl3h6oeixe45qep7vikg4roqtdvez6wyi7xjvontpebzo4" {
-			fmt.Print("hello")
 		}
 		transaction, err := p.parseTrace(trace.ExecutionTrace, tipSet, *blockHash, trace.MsgCid.String(), tipsetKey)
 		if err != nil {
@@ -58,7 +56,7 @@ func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.T
 		transactions = append(transactions, minerTxs...)
 	}
 
-	return &transactions, nil
+	return &transactions, &p.addresses, nil
 }
 
 func (p *Parser) parseSubTxs(subTxs []filTypes.ExecutionTrace, tipSet *filTypes.TipSet, blockHash, txHash string,
@@ -91,6 +89,8 @@ func (p *Parser) parseTrace(trace filTypes.ExecutionTrace, tipSet *filTypes.TipS
 	params := parseParams(metadata)
 	jsonMetadata, _ := json.Marshal(metadata)
 	txReturn := parseReturn(metadata)
+
+	p.appendAddressInfo(trace.Msg, int64(tipSet.Height()), key)
 
 	return &types.Transaction{
 		BasicBlockData: types.BasicBlockData{
@@ -223,4 +223,23 @@ func getCastedAmount(amount string) string {
 	abs := parsed.Abs()
 	divided := abs.Div(decimal.NewFromInt(1e+18))
 	return divided.String()
+}
+
+func (p *Parser) appendAddressInfo(msg *filTypes.Message, height int64, key filTypes.TipSetKey) {
+	fromAdd := tools.GetActorAddressInfo(msg.From, height, key, p.lib)
+	toAdd := tools.GetActorAddressInfo(msg.To, height, key, p.lib)
+	p.appendToAddresses(fromAdd, toAdd)
+}
+
+func (p *Parser) appendToAddresses(info ...types.AddressInfo) {
+	if p.addresses == nil {
+		return
+	}
+	for _, i := range info {
+		if i.Robust != "" && i.Short != "" && i.Robust != i.Short {
+			if _, ok := p.addresses[i.Short]; !ok {
+				p.addresses[i.Short] = i
+			}
+		}
+	}
 }

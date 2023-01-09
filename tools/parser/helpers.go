@@ -142,12 +142,13 @@ func (p *Parser) parseAccount(txType string, msg *filTypes.Message) (map[string]
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) parseInit(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
+func (p *Parser) parseInit(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64,
+	key filTypes.TipSetKey) (map[string]interface{}, error) {
 	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
 	case "Exec":
-		//return searchForActorCreation(msg, msgRct, height, key, p.lib)
+		return p.parseExec(msg, msgRct, height, key)
 	}
 	return map[string]interface{}{}, errors.New("not method")
 }
@@ -207,7 +208,7 @@ func (p *Parser) parseStoragepower(txType string, msg *filTypes.Message, msgRct 
 	case "Send":
 		return p.parseSend(msg), nil
 	case "CreateMiner":
-		//return searchForActorCreation(msg, )
+		return p.parseCreateMiner(msg, msgRct, height, key)
 	}
 	return map[string]interface{}{}, errors.New("not method")
 }
@@ -271,15 +272,27 @@ func (p *Parser) parseWithdrawBalance(msg *filTypes.Message, height int64, key f
 	return metadata, nil
 }
 
-//func (p *Parser) parseExec(msg *filTypes.Message) (map[string]interface{}, error) {
-//	params, err := ParseInitActorExecParams(msg.Params)
-//	if err != nil {
-//		return map[string]interface{}{}, err
-//	}
-//	createdActorName, err := p.lib.BuiltinActors.GetActorNameFromCid(params.CodeCID)
-//	if err != nil {
-//		return map[string]interface{}{}, err
-//	}
-//	return map[string]interface{}{}, err
-//
-//}
+func (p *Parser) parseCreateMiner(msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
+	height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
+	createdActor, err := searchForActorCreation(msg, msgRct, height, key, p.lib)
+	if err != nil {
+		return map[string]interface{}{}, err
+	}
+	p.appendToAddresses(*createdActor)
+	return map[string]interface{}{}, nil
+}
+
+func (p *Parser) parseExec(msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
+	height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
+	// Check if this Exec contains actor creation event
+	createdActor, err := searchForActorCreation(msg, msgRct, height, key, p.lib)
+	if err != nil {
+		return map[string]interface{}{}, err
+	}
+
+	if createdActor == nil {
+		return map[string]interface{}{}, errors.New("not an actor creation event")
+	}
+	p.appendToAddresses(*createdActor)
+	return map[string]interface{}{}, nil
+}

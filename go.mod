@@ -13,10 +13,10 @@ require (
 	github.com/ipfs/go-cid v0.3.2
 	github.com/ipfs/go-log v1.0.5
 	github.com/orcaman/concurrent-map v1.0.0
+	github.com/shopspring/decimal v1.3.1
 	github.com/spf13/viper v1.7.1
 	github.com/zondax/rosetta-filecoin-lib v1.1800.0
 	github.com/zondax/rosetta-filecoin-proxy v1.1800.0
-	github.com/shopspring/decimal v1.3.1
 )
 
 require (
