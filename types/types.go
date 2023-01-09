@@ -1,6 +1,9 @@
 package types
 
-import "github.com/ipfs/go-cid"
+import (
+	"github.com/ipfs/go-cid"
+	"time"
+)
 
 type AddressInfo struct {
 	// Short is the address in 'short' format
@@ -68,7 +71,7 @@ type BasicBlockData struct {
 type Transaction struct {
 	BasicBlockData
 	// TxTimestamp is the timestamp of the transaction
-	TxTimestamp int64 `json:"tx_timestamp"`
+	TxTimestamp time.Time `json:"tx_timestamp"`
 	// TxHash is the transaction hash
 	TxHash string `json:"tx_hash" gorm:"index:idx_transactions_tx_hash"`
 	// TxFrom is the sender address

@@ -12,6 +12,7 @@ import (
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
 	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
+	"time"
 
 	"strings"
 )
@@ -28,7 +29,7 @@ func NewParser(lib *rosettaFilecoinLib.RosettaConstructionFilecoin) *Parser {
 	}
 }
 
-func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.TipSet) (*[]*types.Transaction, *types.AddressInfoMap, error) {
+func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.TipSet) ([]*types.Transaction, *types.AddressInfoMap, error) {
 	var transactions []*types.Transaction
 	p.addresses = types.NewAddressInfoMap()
 	tipsetKey := tipSet.Key()
@@ -51,12 +52,12 @@ func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.T
 			trace.Msg.Cid().String(), tipsetKey)...)
 
 		// Fees
-		minerTxs := feesTransactions(trace.Msg, tipSet.Blocks()[0].Miner.String(), transaction.TxHash, *blockHash,
-			transaction.TxType, trace.GasCost, uint64(tipSet.Height()), int64(tipSet.MinTimestamp()))
+		minerTxs := p.feesTransactions(trace.Msg, tipSet.Blocks()[0].Miner.String(), transaction.TxHash, *blockHash,
+			transaction.TxType, trace.GasCost, uint64(tipSet.Height()), tipSet.MinTimestamp())
 		transactions = append(transactions, minerTxs...)
 	}
 
-	return &transactions, &p.addresses, nil
+	return transactions, &p.addresses, nil
 }
 
 func (p *Parser) parseSubTxs(subTxs []filTypes.ExecutionTrace, tipSet *filTypes.TipSet, blockHash, txHash string,
@@ -97,7 +98,7 @@ func (p *Parser) parseTrace(trace filTypes.ExecutionTrace, tipSet *filTypes.TipS
 			Height: uint64(tipSet.Height()),
 			Hash:   blockHash,
 		},
-		TxTimestamp: int64(tipSet.MinTimestamp()),
+		TxTimestamp: p.getTimestamp(tipSet.MinTimestamp()),
 		TxHash:      txHash,
 		TxFrom:      trace.Msg.From.String(),
 		TxTo:        trace.Msg.To.String(),
@@ -110,21 +111,22 @@ func (p *Parser) parseTrace(trace filTypes.ExecutionTrace, tipSet *filTypes.TipS
 	}, nil
 }
 
-func feesTransactions(msg *filTypes.Message, minerAddress, txHash, blockHash, txType string, gasCost api.MsgGasCost,
-	height uint64, timestamp int64) (feeTxs []*types.Transaction) {
-	feeTxs = append(feeTxs, newFeeTx(msg, "", txHash, blockHash, txType,
-		tools.TotalFeeOp, getCastedAmount(gasCost.TotalCost.String()), height, timestamp))
-	feeTxs = append(feeTxs, newFeeTx(msg, tools.BurnAddress, txHash, blockHash, txType,
-		tools.OverEstimationBurnOp, getCastedAmount(gasCost.OverEstimationBurn.String()), height, timestamp))
-	feeTxs = append(feeTxs, newFeeTx(msg, minerAddress, txHash, blockHash, txType,
-		tools.MinerFeeOp, getCastedAmount(gasCost.MinerTip.String()), height, timestamp))
-	feeTxs = append(feeTxs, newFeeTx(msg, tools.BurnAddress, txHash, blockHash, txType,
-		tools.BurnFeeOp, getCastedAmount(gasCost.BaseFeeBurn.String()), height, timestamp))
+func (p *Parser) feesTransactions(msg *filTypes.Message, minerAddress, txHash, blockHash, txType string, gasCost api.MsgGasCost,
+	height uint64, timestamp uint64) (feeTxs []*types.Transaction) {
+	ts := p.getTimestamp(timestamp)
+	feeTxs = append(feeTxs, p.newFeeTx(msg, "", txHash, blockHash, txType,
+		tools.TotalFeeOp, getCastedAmount(gasCost.TotalCost.String()), height, ts))
+	feeTxs = append(feeTxs, p.newFeeTx(msg, tools.BurnAddress, txHash, blockHash, txType,
+		tools.OverEstimationBurnOp, getCastedAmount(gasCost.OverEstimationBurn.String()), height, ts))
+	feeTxs = append(feeTxs, p.newFeeTx(msg, minerAddress, txHash, blockHash, txType,
+		tools.MinerFeeOp, getCastedAmount(gasCost.MinerTip.String()), height, ts))
+	feeTxs = append(feeTxs, p.newFeeTx(msg, tools.BurnAddress, txHash, blockHash, txType,
+		tools.BurnFeeOp, getCastedAmount(gasCost.BaseFeeBurn.String()), height, ts))
 	return
 }
 
-func newFeeTx(msg *filTypes.Message, txTo, txHash, blockHash, txType, feeType string, gasCost string, height uint64,
-	timestamp int64) *types.Transaction {
+func (p *Parser) newFeeTx(msg *filTypes.Message, txTo, txHash, blockHash, txType, feeType string, gasCost string, height uint64,
+	timestamp time.Time) *types.Transaction {
 	return &types.Transaction{
 		BasicBlockData: types.BasicBlockData{
 			Height: height,
@@ -242,4 +244,9 @@ func (p *Parser) appendToAddresses(info ...types.AddressInfo) {
 			}
 		}
 	}
+}
+
+func (p *Parser) getTimestamp(timestamp uint64) time.Time {
+	blockTimeStamp := int64(timestamp) * 1000
+	return time.Unix(blockTimeStamp/1000, blockTimeStamp%1000)
 }
