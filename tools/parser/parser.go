@@ -80,10 +80,12 @@ func (p *Parser) parseTrace(trace filTypes.ExecutionTrace, tipSet *filTypes.TipS
 	if err != nil {
 		txType = "unknown"
 	}
-
 	metadata, mErr := p.getMetadata(txType, trace.Msg, trace.MsgRct, int64(tipSet.Height()), key, ethLogs)
 	if mErr != nil {
 		// TODO: log
+	}
+	if trace.Error != "" {
+		metadata["Error"] = trace.Error
 	}
 	params := parseParams(metadata)
 	jsonMetadata, _ := json.Marshal(metadata)
@@ -170,21 +172,21 @@ func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTy
 	case "cron":
 		return p.parseCron(txType, msg)
 	case "account":
-		return p.parseAccount(txType, msg)
+		return p.parseAccount(txType, msg, msgRct)
 	case "storagepower":
 		return p.parseStoragepower(txType, msg, msgRct, height, key)
 	case "storageminer":
-		return p.parseStorageminer(txType, msg, height, key)
+		return p.parseStorageminer(txType, msg, msgRct, height, key)
 	case "storagemarket":
 		return p.parseStoragemarket(txType, msg, msgRct)
 	case "paymentchannel":
 		return p.parsePaymentchannel(txType, msg)
 	case "multisig":
-		return p.parseMultisig(txType, msg, height, key)
+		return p.parseMultisig(txType, msg, msgRct, height, key)
 	case "reward":
 		return p.parseReward(txType, msg, msgRct)
 	case "verifiedregistry":
-		return p.parseVerifiedregistry(txType, msg)
+		return p.parseVerifiedregistry(txType, msg, msgRct)
 	case "evm":
 		return p.parseEvm(txType, msg, msgRct, ethLogs)
 	default:

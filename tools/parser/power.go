@@ -73,12 +73,21 @@ func (p *Parser) powerConstructor(raw []byte) (map[string]interface{}, error) {
 
 func (p *Parser) parseCreateMiner(msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
 	height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
 	createdActor, err := searchForActorCreation(msg, msgRct, height, key, p.lib)
 	if err != nil {
 		return map[string]interface{}{}, err
 	}
 	p.appendToAddresses(*createdActor)
-	return map[string]interface{}{}, nil
+	metadata["Return"] = createdActor
+	reader := bytes.NewReader(msg.Params)
+	var params power.CreateMinerParams
+	err = params.UnmarshalCBOR(reader)
+	if err != nil {
+		return metadata, err
+	}
+	metadata["Params"] = params
+	return metadata, nil
 }
 
 func (p *Parser) enrollCronEvent(raw []byte) (map[string]interface{}, error) {

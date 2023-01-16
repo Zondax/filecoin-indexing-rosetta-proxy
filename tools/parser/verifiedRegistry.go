@@ -7,7 +7,7 @@ import (
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 )
 
-func (p *Parser) parseVerifiedregistry(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
+func (p *Parser) parseVerifiedregistry(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt) (map[string]interface{}, error) {
 	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
@@ -22,6 +22,8 @@ func (p *Parser) parseVerifiedregistry(txType string, msg *filTypes.Message) (ma
 	case "RestoreBytes":
 		return p.restoreBytes(msg.Params)
 	case "RemoveVerifiedClientDataCap":
+	case "RemoveExpiredAllocations":
+		return p.removeExpiredAllocations(msg.Params, msgRct.Return)
 	}
 	return map[string]interface{}{}, errors.New("not method")
 }
@@ -71,5 +73,24 @@ func (p *Parser) restoreBytes(raw []byte) (map[string]interface{}, error) {
 		return metadata, err
 	}
 	metadata["Params"] = params
+	return metadata, nil
+}
+
+func (p *Parser) removeExpiredAllocations(raw, rawReturn []byte) (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
+	reader := bytes.NewReader(raw)
+	var params verifreg.RemoveExpiredAllocationsParams
+	err := params.UnmarshalCBOR(reader)
+	if err != nil {
+		return metadata, err
+	}
+	metadata["Params"] = params
+	reader = bytes.NewReader(rawReturn)
+	var expiredReturn verifreg.RemoveExpiredAllocationsReturn
+	err = expiredReturn.UnmarshalCBOR(reader)
+	if err != nil {
+		return metadata, err
+	}
+	metadata["Return"] = expiredReturn
 	return metadata, nil
 }

@@ -2,12 +2,14 @@ package parser
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
+	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-state-types/builtin/v10/miner"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 )
 
-func (p *Parser) parseStorageminer(txType string, msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
+func (p *Parser) parseStorageminer(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
 	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
@@ -15,6 +17,7 @@ func (p *Parser) parseStorageminer(txType string, msg *filTypes.Message, height 
 		return p.minerConstructor(msg.Params)
 	case "AwardBlockReward": // ?
 	case "ControlAddresses":
+		return p.controlAddresses(msg.Params, msgRct.Return)
 	case "ChangeWorkerAddress":
 		return p.changeWorkerAddress(msg.Params)
 	case "ChangePeerID":
@@ -28,8 +31,11 @@ func (p *Parser) parseStorageminer(txType string, msg *filTypes.Message, height 
 	case "ExtendSectorExpiration":
 		return p.extendSectorExpiration(msg.Params)
 	case "TerminateSectors":
+		return p.terminateSectors(msg.Params, msgRct.Return)
 	case "DeclareFaults":
+		return p.declareFaults(msg.Params)
 	case "DeclareFaultsRecovered":
+		return p.declareFaultsRecovered(msg.Params)
 	case "OnDeferredCronEvent":
 		return p.onDeferredCronEvent(msg.Params)
 	case "CheckSectorProven":
@@ -58,14 +64,78 @@ func (p *Parser) parseStorageminer(txType string, msg *filTypes.Message, height 
 	case "ProveCommitAggregate":
 		return p.proveCommitAggregate(msg.Params)
 	case "ProveReplicaUpdates":
-		return p.proveReplicaUpdates(msg.Params)
+		return p.proveReplicaUpdates(msg.Params, msgRct.Return)
 	case "ChangeBeneficiary":
 		return p.changeBeneficiary(msg.Params)
+	case "GetBeneficiary":
+		return p.getBeneficiary(msg.Params, msgRct.Return)
 	}
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) proveReplicaUpdates(raw []byte) (map[string]interface{}, error) {
+func (p *Parser) terminateSectors(rawParams, rawReturn []byte) (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
+	reader := bytes.NewReader(rawParams)
+	var params miner.TerminateSectorsParams
+	err := params.UnmarshalCBOR(reader)
+	if err != nil {
+		return metadata, err
+	}
+	metadata["Params"] = params
+	reader = bytes.NewReader(rawReturn)
+	var terminateReturn miner.TerminateSectorsReturn
+	err = terminateReturn.UnmarshalCBOR(reader)
+	if err != nil {
+		return metadata, err
+	}
+	metadata["Return"] = terminateReturn
+	return metadata, nil
+}
+
+func (p *Parser) controlAddresses(rawParams, rawReturn []byte) (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
+	if rawParams != nil {
+		metadata["Params"] = base64.StdEncoding.EncodeToString(rawParams)
+	}
+	reader := bytes.NewReader(rawReturn)
+	var controlReturn miner.GetControlAddressesReturn
+	err := controlReturn.UnmarshalCBOR(reader)
+	if err != nil {
+		return metadata, err
+	}
+	metadata["Return"] = controlAddress{
+		Owner:        controlReturn.Owner.String(),
+		Worker:       controlReturn.Worker.String(),
+		ControlAddrs: getControlAddrs(controlReturn.ControlAddrs),
+	}
+	return metadata, nil
+}
+
+func (p *Parser) declareFaults(raw []byte) (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
+	reader := bytes.NewReader(raw)
+	var params miner.DeclareFaultsParams
+	err := params.UnmarshalCBOR(reader)
+	if err != nil {
+		return metadata, err
+	}
+	metadata["Params"] = params
+	return metadata, nil
+}
+
+func (p *Parser) declareFaultsRecovered(raw []byte) (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
+	reader := bytes.NewReader(raw)
+	var params miner.DeclareFaultsRecoveredParams
+	err := params.UnmarshalCBOR(reader)
+	if err != nil {
+		return metadata, err
+	}
+	metadata["Params"] = params
+	return metadata, nil
+}
+
+func (p *Parser) proveReplicaUpdates(raw, rawReturn []byte) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
 	reader := bytes.NewReader(raw)
 	var params miner.ProveReplicaUpdatesParams
@@ -315,4 +385,43 @@ func (p *Parser) onDeferredCronEvent(raw []byte) (map[string]interface{}, error)
 	}
 	metadata["Params"] = params
 	return metadata, nil
+}
+
+func (p *Parser) getBeneficiary(rawParams, rawReturn []byte) (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
+	if rawParams != nil {
+		metadata["Params"] = base64.StdEncoding.EncodeToString(rawParams)
+	}
+	reader := bytes.NewReader(rawReturn)
+	var beneficiaryReturn miner.GetBeneficiaryReturn
+	err := beneficiaryReturn.UnmarshalCBOR(reader)
+	if err != nil {
+		return metadata, err
+	}
+	metadata["Return"] = getBeneficiryReturn{
+		Active: activeBeneficiary{
+			Beneficiary: beneficiaryReturn.Active.Beneficiary.String(),
+			Term: beneficiaryTerm{
+				Quota:      beneficiaryReturn.Active.Term.Quota.String(),
+				UsedQuota:  beneficiaryReturn.Active.Term.UsedQuota.String(),
+				Expiration: int64(beneficiaryReturn.Active.Term.Expiration),
+			},
+		},
+		Proposed: proposed{
+			NewBeneficiary:        beneficiaryReturn.Proposed.NewBeneficiary.String(),
+			NewQuota:              beneficiaryReturn.Proposed.NewQuota.String(),
+			NewExpiration:         int64(beneficiaryReturn.Proposed.NewExpiration),
+			ApprovedByBeneficiary: beneficiaryReturn.Proposed.ApprovedByBeneficiary,
+			ApprovedByNominee:     beneficiaryReturn.Proposed.ApprovedByNominee,
+		},
+	}
+	return metadata, nil
+}
+
+func getControlAddrs(addrs []address.Address) []string {
+	r := make([]string, len(addrs))
+	for i, addr := range addrs {
+		r[i] = addr.String()
+	}
+	return r
 }

@@ -2,11 +2,10 @@ package parser
 
 import (
 	"bytes"
-	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/filecoin-project/go-state-types/builtin/v10/evm"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	initActor "github.com/filecoin-project/specs-actors/actors/builtin/init"
@@ -137,57 +136,16 @@ func ParseMsigParams(msg *filTypes.Message, height int64, key filTypes.TipSetKey
 	return parsedParams, nil
 }
 
-func (p *Parser) parseAccount(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
+func (p *Parser) parseAccount(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt) (map[string]interface{}, error) {
 	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
-	}
-	return map[string]interface{}{}, errors.New("not method")
-}
-
-func (p *Parser) parseMultisig(txType string, msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	switch txType {
-	case "Constructor":
-	case "Send":
-		return p.parseSend(msg), nil
-	case "Propose":
-		return ParseProposeParams(msg, height, key, p.lib)
-	case "Approve":
-		return p.parseMsigParams(msg, height, key)
-	case "Cancel":
-		return p.parseMsigParams(msg, height, key)
-	case "AddSigner", "RemoveSigner", "SwapSigner":
-		return p.parseMsigParams(msg, height, key)
-	case "ChangeNumApprovalsThreshold":
-	case "LockBalance":
-	}
-	return map[string]interface{}{}, errors.New("not method")
-}
-
-func (p *Parser) parseEvm(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, ethLogs []EthLog) (map[string]interface{}, error) {
-	metadata := make(map[string]interface{})
-	switch txType {
-	case "Constructor":
-		reader := bytes.NewReader(msg.Params)
-		var params evm.ConstructorParams
-		err := params.UnmarshalCBOR(reader)
-		if err != nil {
-			return metadata, err
-		}
-		metadata["Params"] = params
+	case "PubkeyAddress":
+		metadata := make(map[string]interface{})
+		metadata["Params"] = base64.StdEncoding.EncodeToString(msg.Params)
 		return metadata, nil
-	case "InvokeContract", "InvokeContractReadOnly", "InvokeContractDelegate":
-		metadata["Params"] = "0x" + hex.EncodeToString(msg.Params)
-		metadata["Return"] = "0x" + hex.EncodeToString(msgRct.Return)
-
-		logs, err := searchEthLogs(ethLogs, msg)
-		if err != nil {
-			return metadata, err
-		}
-		metadata["ethLogs"] = logs
-	case "GetBytecode":
 	}
-	return metadata, nil
+	return map[string]interface{}{}, errors.New("not method")
 }
 
 func (p *Parser) parseSend(msg *filTypes.Message) map[string]interface{} {
@@ -196,33 +154,30 @@ func (p *Parser) parseSend(msg *filTypes.Message) map[string]interface{} {
 	return metadata
 }
 
-func (p *Parser) parseMsigParams(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	params, err := ParseMsigParams(msg, height, key, p.lib)
-	if err != nil {
-		return map[string]interface{}{}, err
-	}
-	var paramsMap map[string]interface{}
-	err = json.Unmarshal([]byte(params), &paramsMap)
-	if err != nil {
-		return map[string]interface{}{}, err
-	}
-	return paramsMap, nil
-}
-
-func (p *Parser) parseExec(msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
-	height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	// Check if this Exec contains actor creation event
-	createdActor, err := searchForActorCreation(msg, msgRct, height, key, p.lib)
-	if err != nil {
-		return map[string]interface{}{}, err
-	}
-
-	if createdActor == nil {
-		return map[string]interface{}{}, errors.New("not an actor creation event")
-	}
-	p.appendToAddresses(*createdActor)
-	return map[string]interface{}{}, nil
-}
+//func (p *Parser) parseExec(msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
+//	height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
+//	// Check if this Exec contains actor creation event
+//	createdActor, err := searchForActorCreation(msg, msgRct, height, key, p.lib)
+//	if err != nil {
+//		return map[string]interface{}{}, err
+//	}
+//
+//	if createdActor == nil {
+//		return map[string]interface{}{}, errors.New("not an actor creation event")
+//	}
+//	p.appendToAddresses(*createdActor)
+//	metadata := make(map[string]interface{})
+//	reader := bytes.NewReader(raw)
+//	var params miner.ProveCommitAggregateParams
+//	err := params.UnmarshalCBOR(reader)
+//	if err != nil {
+//		return metadata, err
+//	}
+//	metadata["Params"] = params
+//	return metadata, nil
+//
+//	return map[string]interface{}{}, nil
+//}
 
 func searchEthLogs(logs []EthLog, msg *filTypes.Message) ([]EthLog, error) {
 	ethHash, err := api.NewEthHashFromCid(msg.Cid())

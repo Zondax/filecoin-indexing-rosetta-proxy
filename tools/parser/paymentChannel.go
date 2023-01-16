@@ -17,6 +17,7 @@ func (p *Parser) parsePaymentchannel(txType string, msg *filTypes.Message) (map[
 		return p.updateChannelState(msg.Params)
 	case "Settle":
 	case "Collect":
+
 	}
 	return map[string]interface{}{}, errors.New("not method")
 }

@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"github.com/filecoin-project/go-state-types/builtin/v10/market"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
@@ -14,7 +15,7 @@ func (p *Parser) parseStoragemarket(txType string, msg *filTypes.Message, msgRct
 	case "Constructor":
 	case "AddBalance":
 	case "WithdrawBalance":
-		return p.withdrawBalance(msg.Params)
+		return p.withdrawBalance(msg.Params, msgRct.Return)
 	case "PublishStorageDeals":
 		return p.publishStorageDeals(msg.Params, msgRct.Return)
 	case "VerifyDealsForActivation":
@@ -30,7 +31,7 @@ func (p *Parser) parseStoragemarket(txType string, msg *filTypes.Message, msgRct
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) withdrawBalance(raw []byte) (map[string]interface{}, error) {
+func (p *Parser) withdrawBalance(raw, rawReturn []byte) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
 	reader := bytes.NewReader(raw)
 	var params market.WithdrawBalanceParams
@@ -39,6 +40,9 @@ func (p *Parser) withdrawBalance(raw []byte) (map[string]interface{}, error) {
 		return metadata, err
 	}
 	metadata["Params"] = params
+	if rawReturn != nil {
+		metadata["Return"] = base64.StdEncoding.EncodeToString(rawReturn)
+	}
 	return metadata, nil
 }
 
