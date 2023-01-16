@@ -2,12 +2,15 @@ package parser
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/filecoin-project/go-state-types/builtin/v10/evm"
+	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
-	initActor "github.com/filecoin-project/specs-actors/v7/actors/builtin/init"
-	"github.com/filecoin-project/specs-actors/v7/actors/builtin/power"
+	initActor "github.com/filecoin-project/specs-actors/actors/builtin/init"
+	"github.com/filecoin-project/specs-actors/actors/builtin/power"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	"github.com/zondax/rosetta-filecoin-lib/actors"
@@ -142,35 +145,9 @@ func (p *Parser) parseAccount(txType string, msg *filTypes.Message) (map[string]
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) parseInit(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64,
-	key filTypes.TipSetKey) (map[string]interface{}, error) {
-	switch txType {
-	case "Send":
-		return p.parseSend(msg), nil
-	case "Exec":
-		return p.parseExec(msg, msgRct, height, key)
-	}
-	return map[string]interface{}{}, errors.New("not method")
-}
-
-func (p *Parser) parseCron(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
-	switch txType {
-	case "Send":
-		return p.parseSend(msg), nil
-	}
-	return map[string]interface{}{}, errors.New("not method")
-}
-
-func (p *Parser) parseReward(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
-	switch txType {
-	case "Send":
-		return p.parseSend(msg), nil
-	}
-	return map[string]interface{}{}, errors.New("not method")
-}
-
 func (p *Parser) parseMultisig(txType string, msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
 	switch txType {
+	case "Constructor":
 	case "Send":
 		return p.parseSend(msg), nil
 	case "Propose":
@@ -181,70 +158,36 @@ func (p *Parser) parseMultisig(txType string, msg *filTypes.Message, height int6
 		return p.parseMsigParams(msg, height, key)
 	case "AddSigner", "RemoveSigner", "SwapSigner":
 		return p.parseMsigParams(msg, height, key)
+	case "ChangeNumApprovalsThreshold":
+	case "LockBalance":
 	}
 	return map[string]interface{}{}, errors.New("not method")
 }
 
-func (p *Parser) parsePaymentchannel(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
+func (p *Parser) parseEvm(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, ethLogs []EthLog) (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
 	switch txType {
-	case "Send":
-		return p.parseSend(msg), nil
-	}
-	return map[string]interface{}{}, errors.New("not method")
-}
+	case "Constructor":
+		reader := bytes.NewReader(msg.Params)
+		var params evm.ConstructorParams
+		err := params.UnmarshalCBOR(reader)
+		if err != nil {
+			return metadata, err
+		}
+		metadata["Params"] = params
+		return metadata, nil
+	case "InvokeContract", "InvokeContractReadOnly", "InvokeContractDelegate":
+		metadata["Params"] = "0x" + hex.EncodeToString(msg.Params)
+		metadata["Return"] = "0x" + hex.EncodeToString(msgRct.Return)
 
-func (p *Parser) parseStoragemarket(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
-	switch txType {
-	case "Send":
-		return p.parseSend(msg), nil
-	case "AddBalance":
+		logs, err := searchEthLogs(ethLogs, msg)
+		if err != nil {
+			return metadata, err
+		}
+		metadata["ethLogs"] = logs
+	case "GetBytecode":
 	}
-	return map[string]interface{}{}, errors.New("not method")
-}
-
-func (p *Parser) parseStoragepower(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
-	height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	switch txType {
-	case "Send":
-		return p.parseSend(msg), nil
-	case "CreateMiner":
-		return p.parseCreateMiner(msg, msgRct, height, key)
-	}
-	return map[string]interface{}{}, errors.New("not method")
-}
-
-func (p *Parser) parseStorageminer(txType string, msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	switch txType {
-	case "Send":
-		return p.parseSend(msg), nil
-	case "AwardBlockReward":
-	case "OnDeferredCronEvent":
-	case "PreCommitSector":
-	case "ProveCommitSector":
-	case "SubmitWindowedPoSt":
-	case "ApplyRewards":
-	case "WithdrawBalance":
-		return p.parseWithdrawBalance(msg, height, key)
-	case "ChangeOwnerAddress":
-	case "ChangeWorkerAddress":
-	case "ConfirmUpdateWorkerKey":
-	case "DeclareFaultsRecovered":
-	case "PreCommitSectorBatch":
-	case "ProveCommitAggregate":
-	case "ProveReplicaUpdates":
-	}
-	return map[string]interface{}{}, errors.New("not method")
-}
-
-func (p *Parser) parseVerifiedregistry(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
-	switch txType {
-	case "Send":
-		return p.parseSend(msg), nil
-	case "AddVerifiedClient":
-	case "AddVerifier":
-	case "RemoveVerifier":
-	}
-	return map[string]interface{}{}, errors.New("not method")
+	return metadata, nil
 }
 
 func (p *Parser) parseSend(msg *filTypes.Message) map[string]interface{} {
@@ -266,22 +209,6 @@ func (p *Parser) parseMsigParams(msg *filTypes.Message, height int64, key filTyp
 	return paramsMap, nil
 }
 
-func (p *Parser) parseWithdrawBalance(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	metadata := make(map[string]interface{})
-	metadata["Params"] = msg.Params
-	return metadata, nil
-}
-
-func (p *Parser) parseCreateMiner(msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
-	height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	createdActor, err := searchForActorCreation(msg, msgRct, height, key, p.lib)
-	if err != nil {
-		return map[string]interface{}{}, err
-	}
-	p.appendToAddresses(*createdActor)
-	return map[string]interface{}{}, nil
-}
-
 func (p *Parser) parseExec(msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
 	height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
 	// Check if this Exec contains actor creation event
@@ -295,4 +222,20 @@ func (p *Parser) parseExec(msg *filTypes.Message, msgRct *filTypes.MessageReceip
 	}
 	p.appendToAddresses(*createdActor)
 	return map[string]interface{}{}, nil
+}
+
+func searchEthLogs(logs []EthLog, msg *filTypes.Message) ([]EthLog, error) {
+	ethHash, err := api.NewEthHashFromCid(msg.Cid())
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]EthLog, 0)
+	for _, log := range logs {
+		if log["transactionHash"] == ethHash.String() {
+			res = append(res, log)
+		}
+	}
+
+	return res, nil
 }

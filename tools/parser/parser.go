@@ -29,7 +29,7 @@ func NewParser(lib *rosettaFilecoinLib.RosettaConstructionFilecoin) *Parser {
 	}
 }
 
-func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.TipSet) ([]*types.Transaction, *types.AddressInfoMap, error) {
+func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.TipSet, ethLogs []EthLog) ([]*types.Transaction, *types.AddressInfoMap, error) {
 	var transactions []*types.Transaction
 	p.addresses = types.NewAddressInfoMap()
 	tipsetKey := tipSet.Key()
@@ -41,14 +41,14 @@ func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.T
 		if !hasMessage(trace) {
 			continue
 		}
-		transaction, err := p.parseTrace(trace.ExecutionTrace, tipSet, *blockHash, trace.MsgCid.String(), tipsetKey)
+		transaction, err := p.parseTrace(trace.ExecutionTrace, tipSet, ethLogs, *blockHash, trace.MsgCid.String(), tipsetKey)
 		if err != nil {
 			continue
 		}
 		transactions = append(transactions, transaction)
 
 		// SubTransactions
-		transactions = append(transactions, p.parseSubTxs(trace.ExecutionTrace.Subcalls, tipSet, *blockHash,
+		transactions = append(transactions, p.parseSubTxs(trace.ExecutionTrace.Subcalls, tipSet, ethLogs, *blockHash,
 			trace.Msg.Cid().String(), tipsetKey)...)
 
 		// Fees
@@ -60,30 +60,28 @@ func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.T
 	return transactions, &p.addresses, nil
 }
 
-func (p *Parser) parseSubTxs(subTxs []filTypes.ExecutionTrace, tipSet *filTypes.TipSet, blockHash, txHash string,
+func (p *Parser) parseSubTxs(subTxs []filTypes.ExecutionTrace, tipSet *filTypes.TipSet, ethLogs []EthLog, blockHash, txHash string,
 	key filTypes.TipSetKey) (txs []*types.Transaction) {
 
 	for _, subTx := range subTxs {
-		subTransaction, err := p.parseTrace(subTx, tipSet, blockHash, txHash, key)
+		subTransaction, err := p.parseTrace(subTx, tipSet, ethLogs, blockHash, txHash, key)
 		if err != nil {
 			continue
 		}
 		txs = append(txs, subTransaction)
-		txs = append(txs, p.parseSubTxs(subTx.Subcalls, tipSet, blockHash, txHash, key)...)
+		txs = append(txs, p.parseSubTxs(subTx.Subcalls, tipSet, ethLogs, blockHash, txHash, key)...)
 	}
 	return
 }
 
-func (p *Parser) parseTrace(trace filTypes.ExecutionTrace, tipSet *filTypes.TipSet, blockHash, txHash string,
+func (p *Parser) parseTrace(trace filTypes.ExecutionTrace, tipSet *filTypes.TipSet, ethLogs []EthLog, blockHash, txHash string,
 	key filTypes.TipSetKey) (*types.Transaction, error) {
 	txType, err := tools.GetMethodName(trace.Msg, int64(tipSet.Height()), key, p.lib)
 	if err != nil {
 		txType = "unknown"
 	}
-	if !tools.IsOpSupported(txType) {
-		return nil, errors.New("operation not supported")
-	}
-	metadata, mErr := p.getMetadata(txType, trace.Msg, trace.MsgRct, int64(tipSet.Height()), key)
+
+	metadata, mErr := p.getMetadata(txType, trace.Msg, trace.MsgRct, int64(tipSet.Height()), key, ethLogs)
 	if mErr != nil {
 		// TODO: log
 	}
@@ -155,8 +153,57 @@ func getStatus(code string) string {
 	return code
 }
 
-func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
+func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey, ethLogs []EthLog) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
+	tempMap := make(map[string]map[string]struct{})
+	tempMap["init"] = make(map[string]struct{})
+
+	tempMap["cron"] = make(map[string]struct{})
+	tempMap["cron"]["EpochTick"] = struct{}{}
+
+	tempMap["account"] = make(map[string]struct{})
+	tempMap["account"]["Send"] = struct{}{}
+
+	tempMap["storagepower"] = make(map[string]struct{})
+	tempMap["storagepower"]["UpdatePledgeTotal"] = struct{}{}
+	tempMap["storagepower"]["EnrollCronEvent"] = struct{}{}
+	tempMap["storagepower"]["UpdateClaimedPower"] = struct{}{}
+	tempMap["storagepower"]["SubmitPoRepForBulkVerify"] = struct{}{}
+	tempMap["storagepower"]["CurrentTotalPower"] = struct{}{}
+	tempMap["storagepower"]["CreateMiner"] = struct{}{}
+
+	tempMap["storageminer"] = make(map[string]struct{})
+	tempMap["storageminer"]["SubmitWindowedPoSt"] = struct{}{}
+	tempMap["storageminer"]["ApplyRewards"] = struct{}{}
+	tempMap["storageminer"]["OnDeferredCronEvent"] = struct{}{}
+	tempMap["storageminer"]["WithdrawBalance"] = struct{}{}
+	tempMap["storageminer"]["ProveCommitSector"] = struct{}{}
+	tempMap["storageminer"]["PreCommitSector"] = struct{}{}
+	tempMap["storageminer"]["ConfirmSectorProofsValid"] = struct{}{}
+	tempMap["storageminer"]["Constructor"] = struct{}{}
+	tempMap["storageminer"]["ChangeBeneficiary"] = struct{}{}
+
+	tempMap["storagemarket"] = make(map[string]struct{})
+
+	tempMap["paymentchannel"] = make(map[string]struct{})
+
+	tempMap["multisig"] = make(map[string]struct{})
+	tempMap["multisig"]["Send"] = struct{}{}
+
+	tempMap["reward"] = make(map[string]struct{})
+	tempMap["reward"]["AwardBlockReward"] = struct{}{}
+	tempMap["reward"]["UpdateNetworkKPI"] = struct{}{} // TODO
+	tempMap["reward"]["ThisEpochReward"] = struct{}{}  // TODO
+
+	tempMap["verifiedregistry"] = make(map[string]struct{})
+
+	tempMap["evm"] = make(map[string]struct{})
+	tempMap["evm"]["InvokeContract"] = struct{}{}         // TODO
+	tempMap["evm"]["InvokeContractReadOnly"] = struct{}{} // TODO
+	tempMap["evm"]["InvokeContractDelegate"] = struct{}{} // TODO
+	tempMap["evm"]["Constructor"] = struct{}{}
+	tempMap["evm"]["GetBytecode"] = struct{}{} // TODO
+
 	var err error
 	actorCode, err := database.ActorsDB.GetActorCode(msg.To, height, key)
 	if err != nil {
@@ -165,6 +212,15 @@ func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTy
 	actor, err := p.lib.BuiltinActors.GetActorNameFromCid(actorCode)
 	if err != nil {
 		return metadata, err
+	}
+	if _, ok := tempMap[actor]; ok {
+		if _, okk := tempMap[actor][txType]; !okk {
+			if txType != "CronTick" && txType != "unknown" {
+				fmt.Println(fmt.Sprintf("NEW METHOD TO IMPLEMENT: %s | %s", actor, txType))
+			} else {
+				fmt.Println(fmt.Sprintf("method %s", txType))
+			}
+		}
 	}
 	switch actor {
 	case "init":
@@ -178,15 +234,17 @@ func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTy
 	case "storageminer":
 		return p.parseStorageminer(txType, msg, height, key)
 	case "storagemarket":
-		return p.parseStoragemarket(txType, msg)
+		return p.parseStoragemarket(txType, msg, msgRct)
 	case "paymentchannel":
 		return p.parsePaymentchannel(txType, msg)
 	case "multisig":
 		return p.parseMultisig(txType, msg, height, key)
 	case "reward":
-		return p.parseReward(txType, msg)
+		return p.parseReward(txType, msg, msgRct)
 	case "verifiedregistry":
 		return p.parseVerifiedregistry(txType, msg)
+	case "evm":
+		return p.parseEvm(txType, msg, msgRct, ethLogs)
 	default:
 		return metadata, errors.New("not a valid actor")
 	}

@@ -163,7 +163,7 @@ func (m *Cache) retrieveActorPubKeyFromLotus(add address.Address, reverse bool) 
 
 func IsRobustAddress(add address.Address) (bool, error) {
 	switch add.Protocol() {
-	case address.BLS, address.SECP256K1, address.Actor:
+	case address.BLS, address.SECP256K1, address.Actor, address.Delegated:
 		return true, nil
 	case address.ID:
 		return false, nil

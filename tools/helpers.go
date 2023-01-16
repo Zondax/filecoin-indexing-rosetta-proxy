@@ -3,8 +3,8 @@ package tools
 import (
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/go-address"
+	methods "github.com/filecoin-project/go-state-types/builtin"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
-	methods "github.com/filecoin-project/specs-actors/v7/actors/builtin"
 	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
@@ -97,6 +97,12 @@ func GetMethodName(msg *filTypes.Message, height int64, key filTypes.TipSetKey, 
 		method = methods.MethodsReward
 	case "verifiedregistry":
 		method = methods.MethodsVerifiedRegistry
+	case "evm":
+		method = methods.MethodsEVM
+	case "eam":
+		method = methods.MethodsEAM
+	case "datacap":
+		method = methods.MethodsDatacap
 	default:
 		return UnknownStr, nil
 	}
@@ -116,7 +122,7 @@ func GetMethodName(msg *filTypes.Message, height int64, key filTypes.TipSetKey, 
 }
 
 func GetActorAddressInfo(add address.Address, height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) types.AddressInfo {
-
+	// TODO: add support for eth
 	var (
 		addInfo types.AddressInfo
 		err     error
