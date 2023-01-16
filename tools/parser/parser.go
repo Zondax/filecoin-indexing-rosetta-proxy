@@ -155,55 +155,6 @@ func getStatus(code string) string {
 
 func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey, ethLogs []EthLog) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
-	tempMap := make(map[string]map[string]struct{})
-	tempMap["init"] = make(map[string]struct{})
-
-	tempMap["cron"] = make(map[string]struct{})
-	tempMap["cron"]["EpochTick"] = struct{}{}
-
-	tempMap["account"] = make(map[string]struct{})
-	tempMap["account"]["Send"] = struct{}{}
-
-	tempMap["storagepower"] = make(map[string]struct{})
-	tempMap["storagepower"]["UpdatePledgeTotal"] = struct{}{}
-	tempMap["storagepower"]["EnrollCronEvent"] = struct{}{}
-	tempMap["storagepower"]["UpdateClaimedPower"] = struct{}{}
-	tempMap["storagepower"]["SubmitPoRepForBulkVerify"] = struct{}{}
-	tempMap["storagepower"]["CurrentTotalPower"] = struct{}{}
-	tempMap["storagepower"]["CreateMiner"] = struct{}{}
-
-	tempMap["storageminer"] = make(map[string]struct{})
-	tempMap["storageminer"]["SubmitWindowedPoSt"] = struct{}{}
-	tempMap["storageminer"]["ApplyRewards"] = struct{}{}
-	tempMap["storageminer"]["OnDeferredCronEvent"] = struct{}{}
-	tempMap["storageminer"]["WithdrawBalance"] = struct{}{}
-	tempMap["storageminer"]["ProveCommitSector"] = struct{}{}
-	tempMap["storageminer"]["PreCommitSector"] = struct{}{}
-	tempMap["storageminer"]["ConfirmSectorProofsValid"] = struct{}{}
-	tempMap["storageminer"]["Constructor"] = struct{}{}
-	tempMap["storageminer"]["ChangeBeneficiary"] = struct{}{}
-
-	tempMap["storagemarket"] = make(map[string]struct{})
-
-	tempMap["paymentchannel"] = make(map[string]struct{})
-
-	tempMap["multisig"] = make(map[string]struct{})
-	tempMap["multisig"]["Send"] = struct{}{}
-
-	tempMap["reward"] = make(map[string]struct{})
-	tempMap["reward"]["AwardBlockReward"] = struct{}{}
-	tempMap["reward"]["UpdateNetworkKPI"] = struct{}{} // TODO
-	tempMap["reward"]["ThisEpochReward"] = struct{}{}  // TODO
-
-	tempMap["verifiedregistry"] = make(map[string]struct{})
-
-	tempMap["evm"] = make(map[string]struct{})
-	tempMap["evm"]["InvokeContract"] = struct{}{}         // TODO
-	tempMap["evm"]["InvokeContractReadOnly"] = struct{}{} // TODO
-	tempMap["evm"]["InvokeContractDelegate"] = struct{}{} // TODO
-	tempMap["evm"]["Constructor"] = struct{}{}
-	tempMap["evm"]["GetBytecode"] = struct{}{} // TODO
-
 	var err error
 	actorCode, err := database.ActorsDB.GetActorCode(msg.To, height, key)
 	if err != nil {
