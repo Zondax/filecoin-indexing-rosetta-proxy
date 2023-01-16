@@ -164,15 +164,6 @@ func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTy
 	if err != nil {
 		return metadata, err
 	}
-	if _, ok := tempMap[actor]; ok {
-		if _, okk := tempMap[actor][txType]; !okk {
-			if txType != "CronTick" && txType != "unknown" {
-				fmt.Println(fmt.Sprintf("NEW METHOD TO IMPLEMENT: %s | %s", actor, txType))
-			} else {
-				fmt.Println(fmt.Sprintf("method %s", txType))
-			}
-		}
-	}
 	switch actor {
 	case "init":
 		return p.parseInit(txType, msg, msgRct, height, key)
