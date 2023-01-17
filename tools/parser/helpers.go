@@ -154,31 +154,6 @@ func (p *Parser) parseSend(msg *filTypes.Message) map[string]interface{} {
 	return metadata
 }
 
-//func (p *Parser) parseExec(msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
-//	height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-//	// Check if this Exec contains actor creation event
-//	createdActor, err := searchForActorCreation(msg, msgRct, height, key, p.lib)
-//	if err != nil {
-//		return map[string]interface{}{}, err
-//	}
-//
-//	if createdActor == nil {
-//		return map[string]interface{}{}, errors.New("not an actor creation event")
-//	}
-//	p.appendToAddresses(*createdActor)
-//	metadata := make(map[string]interface{})
-//	reader := bytes.NewReader(raw)
-//	var params miner.ProveCommitAggregateParams
-//	err := params.UnmarshalCBOR(reader)
-//	if err != nil {
-//		return metadata, err
-//	}
-//	metadata[tools.ParamsKey] = params
-//	return metadata, nil
-//
-//	return map[string]interface{}{}, nil
-//}
-
 func searchEthLogs(logs []EthLog, msg *filTypes.Message) ([]EthLog, error) {
 	ethHash, err := api.NewEthHashFromCid(msg.Cid())
 	if err != nil {

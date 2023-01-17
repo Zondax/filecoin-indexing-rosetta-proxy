@@ -61,6 +61,10 @@ var SupportedOperations = map[string]bool{
 	"ProveCommitAggregate":   true, // MethodsMiner
 	"ProveReplicaUpdates":    true, // MethodsMiner
 	"CreateMiner":            true, // MethodsPower
+	"ChangeMultiaddrs":       true, // MethodsMiner
+	"ChangePeerID":           true, // MethodsMiner
+	"ExtendSectorExpiration": true, // MethodsMiner
+	"PublishStorageDeals":    true, // MethodsMarket
 	"AddBalance":             true, // MethodsMarket
 	"AddVerifiedClient":      true, // MethodsVerifiedRegistry
 	"AddVerifier":            true, // MethodsVerifiedRegistry
@@ -70,10 +74,6 @@ var SupportedOperations = map[string]bool{
 	"GetStorageAt":           true, // MethodsEVM
 	"InvokeContractReadOnly": true, // MethodsEVM
 	"InvokeContractDelegate": true, // MethodsEVM
-	"ChangeMultiaddrs":       true,
-	"ChangePeerID":           true,
-	"ExtendSectorExpiration": true,
-	"PublishStorageDeals":    true,
 }
 
 func GetSupportedOps() []string {
