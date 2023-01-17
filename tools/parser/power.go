@@ -2,11 +2,11 @@ package parser
 
 import (
 	"bytes"
-	"errors"
 	"github.com/filecoin-project/go-state-types/cbor"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/specs-actors/actors/builtin/power"
 	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	"io"
 )
 
@@ -32,7 +32,7 @@ func (p *Parser) parseStoragepower(txType string, msg *filTypes.Message, msgRct 
 		return p.currentTotalPower(msgRct.Return)
 
 	}
-	return map[string]interface{}{}, errors.New("not method")
+	return map[string]interface{}{}, errUnknownMethod
 }
 
 func (p *Parser) currentTotalPower(raw []byte) (map[string]interface{}, error) {
@@ -43,7 +43,7 @@ func (p *Parser) currentTotalPower(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Return"] = params
+	metadata[tools.ReturnKey] = params
 	return metadata, nil
 }
 
@@ -55,7 +55,7 @@ func (p *Parser) submitPoRepForBulkVerify(raw []byte) (map[string]interface{}, e
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -67,7 +67,7 @@ func (p *Parser) powerConstructor(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -79,14 +79,14 @@ func (p *Parser) parseCreateMiner(msg *filTypes.Message, msgRct *filTypes.Messag
 		return map[string]interface{}{}, err
 	}
 	p.appendToAddresses(*createdActor)
-	metadata["Return"] = createdActor
+	metadata[tools.ReturnKey] = createdActor
 	reader := bytes.NewReader(msg.Params)
 	var params power.CreateMinerParams
 	err = params.UnmarshalCBOR(reader)
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -98,7 +98,7 @@ func (p *Parser) enrollCronEvent(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -110,7 +110,7 @@ func (p *Parser) updateClaimedPower(raw []byte) (map[string]interface{}, error) 
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 

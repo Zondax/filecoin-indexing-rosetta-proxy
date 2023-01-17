@@ -3,10 +3,10 @@ package parser
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
 	builtinInit "github.com/filecoin-project/go-state-types/builtin/v10/init"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	filInit "github.com/filecoin-project/specs-actors/actors/builtin/init"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 )
 
 func (p *Parser) parseInit(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64,
@@ -19,7 +19,7 @@ func (p *Parser) parseInit(txType string, msg *filTypes.Message, msgRct *filType
 	case "Exec":
 		return p.parseExec(msg, msgRct, height, key)
 	}
-	return map[string]interface{}{}, errors.New("not method")
+	return map[string]interface{}{}, errUnknownMethod
 }
 
 func (p *Parser) initConstructor(raw []byte) (map[string]interface{}, error) {
@@ -30,7 +30,7 @@ func (p *Parser) initConstructor(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = constructor
+	metadata[tools.ParamsKey] = constructor
 	return metadata, nil
 }
 
@@ -43,7 +43,7 @@ func (p *Parser) parseExec(msg *filTypes.Message, msgRct *filTypes.MessageReceip
 	}
 
 	if createdActor == nil {
-		return map[string]interface{}{}, errors.New("not an actor creation event")
+		return map[string]interface{}{}, errNotActorCreationEvent
 	}
 	p.appendToAddresses(*createdActor)
 	metadata := make(map[string]interface{})
@@ -53,10 +53,10 @@ func (p *Parser) parseExec(msg *filTypes.Message, msgRct *filTypes.MessageReceip
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = execParams{
+	metadata[tools.ParamsKey] = execParams{
 		CodeCid:           params.CodeCID.String(),
 		ConstructorParams: base64.StdEncoding.EncodeToString(params.ConstructorParams),
 	}
-	metadata["Return"] = createdActor
+	metadata[tools.ReturnKey] = createdActor
 	return metadata, nil
 }

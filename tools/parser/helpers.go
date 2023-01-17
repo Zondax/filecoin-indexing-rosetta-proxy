@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	initActor "github.com/filecoin-project/specs-actors/actors/builtin/init"
 	"github.com/filecoin-project/specs-actors/actors/builtin/power"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	"github.com/zondax/rosetta-filecoin-lib/actors"
@@ -106,7 +106,7 @@ func ParseProposeParams(msg *filTypes.Message, height int64, key filTypes.TipSet
 		return params, err
 	}
 
-	params["Params"] = innerParamsMap
+	params[tools.ParamsKey] = innerParamsMap
 
 	return params, nil
 }
@@ -142,15 +142,15 @@ func (p *Parser) parseAccount(txType string, msg *filTypes.Message, msgRct *filT
 		return p.parseSend(msg), nil
 	case "PubkeyAddress":
 		metadata := make(map[string]interface{})
-		metadata["Params"] = base64.StdEncoding.EncodeToString(msg.Params)
+		metadata[tools.ParamsKey] = base64.StdEncoding.EncodeToString(msg.Params)
 		return metadata, nil
 	}
-	return map[string]interface{}{}, errors.New("not method")
+	return map[string]interface{}{}, errUnknownMethod
 }
 
 func (p *Parser) parseSend(msg *filTypes.Message) map[string]interface{} {
 	metadata := make(map[string]interface{})
-	metadata["Params"] = msg.Params
+	metadata[tools.ParamsKey] = msg.Params
 	return metadata
 }
 
@@ -173,7 +173,7 @@ func (p *Parser) parseSend(msg *filTypes.Message) map[string]interface{} {
 //	if err != nil {
 //		return metadata, err
 //	}
-//	metadata["Params"] = params
+//	metadata[tools.ParamsKey] = params
 //	return metadata, nil
 //
 //	return map[string]interface{}{}, nil

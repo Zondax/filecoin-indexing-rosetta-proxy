@@ -3,9 +3,9 @@ package parser
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"github.com/filecoin-project/go-state-types/builtin/v10/multisig"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 )
 
 func (p *Parser) parseMultisig(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
@@ -27,7 +27,7 @@ func (p *Parser) parseMultisig(txType string, msg *filTypes.Message, msgRct *fil
 	case "AddVerifies":
 	case "LockBalance":
 	}
-	return map[string]interface{}{}, errors.New("not method")
+	return map[string]interface{}{}, errUnknownMethod
 }
 
 func (p *Parser) parseMsigParams(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
@@ -54,7 +54,7 @@ func (p *Parser) propose(msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Return"] = proposeReturn
+	metadata[tools.ReturnKey] = proposeReturn
 	return metadata, nil
 }
 
@@ -64,14 +64,14 @@ func (p *Parser) approve(msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
 	if err != nil {
 		return map[string]interface{}{}, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	reader := bytes.NewReader(msgRct.Return)
 	var approveReturn multisig.ApproveReturn
 	err = approveReturn.UnmarshalCBOR(reader)
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Return"] = approveReturn
+	metadata[tools.ReturnKey] = approveReturn
 	return metadata, nil
 }
 
@@ -81,7 +81,7 @@ func (p *Parser) cancel(msg *filTypes.Message, height int64, key filTypes.TipSet
 	if err != nil {
 		return map[string]interface{}{}, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -91,6 +91,6 @@ func (p *Parser) removeSigner(msg *filTypes.Message, height int64, key filTypes.
 	if err != nil {
 		return map[string]interface{}{}, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }

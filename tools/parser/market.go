@@ -3,9 +3,9 @@ package parser
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
 	"github.com/filecoin-project/go-state-types/builtin/v10/market"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 )
 
 func (p *Parser) parseStoragemarket(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt) (map[string]interface{}, error) {
@@ -28,7 +28,7 @@ func (p *Parser) parseStoragemarket(txType string, msg *filTypes.Message, msgRct
 		return p.computeDataCommitment(msg.Params, msgRct.Return)
 	case "CronTick":
 	}
-	return map[string]interface{}{}, errors.New("not method")
+	return map[string]interface{}{}, errUnknownMethod
 }
 
 func (p *Parser) withdrawBalance(raw, rawReturn []byte) (map[string]interface{}, error) {
@@ -39,9 +39,9 @@ func (p *Parser) withdrawBalance(raw, rawReturn []byte) (map[string]interface{},
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	if rawReturn != nil {
-		metadata["Return"] = base64.StdEncoding.EncodeToString(rawReturn)
+		metadata[tools.ReturnKey] = base64.StdEncoding.EncodeToString(rawReturn)
 	}
 	return metadata, nil
 }
@@ -54,14 +54,14 @@ func (p *Parser) publishStorageDeals(rawParams, rawReturn []byte) (map[string]in
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	reader = bytes.NewReader(rawReturn)
 	var publishReturn market.PublishStorageDealsReturn
 	err = publishReturn.UnmarshalCBOR(reader)
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Return"] = publishReturn
+	metadata[tools.ReturnKey] = publishReturn
 	return metadata, nil
 }
 
@@ -73,14 +73,14 @@ func (p *Parser) verifyDealsForActivation(rawParams, rawReturn []byte) (map[stri
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	reader = bytes.NewReader(rawReturn)
 	var dealsReturn market.VerifyDealsForActivationReturn
 	err = dealsReturn.UnmarshalCBOR(reader)
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Return"] = dealsReturn
+	metadata[tools.ReturnKey] = dealsReturn
 	return metadata, nil
 }
 
@@ -92,7 +92,7 @@ func (p *Parser) activateDeals(rawParams []byte) (map[string]interface{}, error)
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -104,7 +104,7 @@ func (p *Parser) onMinerSectorsTerminate(rawParams []byte) (map[string]interface
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -116,13 +116,13 @@ func (p *Parser) computeDataCommitment(rawParams, rawReturn []byte) (map[string]
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	reader = bytes.NewReader(rawReturn)
 	var computeReturn market.ComputeDataCommitmentReturn
 	err = computeReturn.UnmarshalCBOR(reader)
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Return"] = computeReturn
+	metadata[tools.ReturnKey] = computeReturn
 	return metadata, nil
 }

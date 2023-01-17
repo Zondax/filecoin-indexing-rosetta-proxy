@@ -2,7 +2,6 @@ package parser
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
@@ -35,7 +34,7 @@ func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.T
 	tipsetKey := tipSet.Key()
 	blockHash, err := rosetta.BuildTipSetKeyHash(tipsetKey)
 	if err != nil {
-		return nil, nil, errors.New("unable to get block hash") // TODO: define errors
+		return nil, nil, errBlockHash
 	}
 	for _, trace := range traces {
 		if !hasMessage(trace) {
@@ -190,16 +189,16 @@ func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTy
 	case "evm":
 		return p.parseEvm(txType, msg, msgRct, ethLogs)
 	default:
-		return metadata, errors.New("not a valid actor")
+		return metadata, errNotValidActor
 	}
 }
 
 func parseParams(metadata map[string]interface{}) string {
-	params, ok := metadata["Params"].(string)
+	params, ok := metadata[tools.ParamsKey].(string)
 	if ok && params != "" {
 		return params
 	}
-	jsonMetadata, err := json.Marshal(metadata["Params"])
+	jsonMetadata, err := json.Marshal(metadata[tools.ParamsKey])
 	if err == nil {
 		return string(jsonMetadata)
 	}
@@ -207,11 +206,11 @@ func parseParams(metadata map[string]interface{}) string {
 }
 
 func parseReturn(metadata map[string]interface{}) string {
-	params, ok := metadata["Return"].(string)
+	params, ok := metadata[tools.ReturnKey].(string)
 	if ok && params != "" {
 		return params
 	}
-	jsonMetadata, err := json.Marshal(metadata["Return"])
+	jsonMetadata, err := json.Marshal(metadata[tools.ReturnKey])
 	if err == nil && string(jsonMetadata) != "null" {
 		return string(jsonMetadata)
 	}

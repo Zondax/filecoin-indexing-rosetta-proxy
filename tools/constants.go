@@ -30,6 +30,9 @@ const (
 	BurnFeeOp            = "BurnFee"
 
 	BurnAddress = "f099"
+
+	ParamsKey = "Params"
+	ReturnKey = "Return"
 )
 
 // SupportedOperations operations that will be parsed

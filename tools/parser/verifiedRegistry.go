@@ -2,9 +2,9 @@ package parser
 
 import (
 	"bytes"
-	"errors"
 	"github.com/filecoin-project/go-state-types/builtin/v10/verifreg"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 )
 
 func (p *Parser) parseVerifiedregistry(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt) (map[string]interface{}, error) {
@@ -25,7 +25,7 @@ func (p *Parser) parseVerifiedregistry(txType string, msg *filTypes.Message, msg
 	case "RemoveExpiredAllocations":
 		return p.removeExpiredAllocations(msg.Params, msgRct.Return)
 	}
-	return map[string]interface{}{}, errors.New("not method")
+	return map[string]interface{}{}, errUnknownMethod
 }
 
 func (p *Parser) addVerifier(raw []byte) (map[string]interface{}, error) {
@@ -36,7 +36,7 @@ func (p *Parser) addVerifier(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -48,7 +48,7 @@ func (p *Parser) addVerifiedClient(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -60,7 +60,7 @@ func (p *Parser) useBytes(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -72,7 +72,7 @@ func (p *Parser) restoreBytes(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -84,13 +84,13 @@ func (p *Parser) removeExpiredAllocations(raw, rawReturn []byte) (map[string]int
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	reader = bytes.NewReader(rawReturn)
 	var expiredReturn verifreg.RemoveExpiredAllocationsReturn
 	err = expiredReturn.UnmarshalCBOR(reader)
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Return"] = expiredReturn
+	metadata[tools.ReturnKey] = expiredReturn
 	return metadata, nil
 }

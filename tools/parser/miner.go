@@ -3,10 +3,10 @@ package parser
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-state-types/builtin/v10/miner"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 )
 
 func (p *Parser) parseStorageminer(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
@@ -70,7 +70,7 @@ func (p *Parser) parseStorageminer(txType string, msg *filTypes.Message, msgRct 
 	case "GetBeneficiary":
 		return p.getBeneficiary(msg.Params, msgRct.Return)
 	}
-	return map[string]interface{}{}, errors.New("not method")
+	return map[string]interface{}{}, errUnknownMethod
 }
 
 func (p *Parser) terminateSectors(rawParams, rawReturn []byte) (map[string]interface{}, error) {
@@ -81,21 +81,21 @@ func (p *Parser) terminateSectors(rawParams, rawReturn []byte) (map[string]inter
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	reader = bytes.NewReader(rawReturn)
 	var terminateReturn miner.TerminateSectorsReturn
 	err = terminateReturn.UnmarshalCBOR(reader)
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Return"] = terminateReturn
+	metadata[tools.ReturnKey] = terminateReturn
 	return metadata, nil
 }
 
 func (p *Parser) controlAddresses(rawParams, rawReturn []byte) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
 	if rawParams != nil {
-		metadata["Params"] = base64.StdEncoding.EncodeToString(rawParams)
+		metadata[tools.ParamsKey] = base64.StdEncoding.EncodeToString(rawParams)
 	}
 	reader := bytes.NewReader(rawReturn)
 	var controlReturn miner.GetControlAddressesReturn
@@ -103,7 +103,7 @@ func (p *Parser) controlAddresses(rawParams, rawReturn []byte) (map[string]inter
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Return"] = controlAddress{
+	metadata[tools.ReturnKey] = controlAddress{
 		Owner:        controlReturn.Owner.String(),
 		Worker:       controlReturn.Worker.String(),
 		ControlAddrs: getControlAddrs(controlReturn.ControlAddrs),
@@ -119,7 +119,7 @@ func (p *Parser) declareFaults(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -131,7 +131,7 @@ func (p *Parser) declareFaultsRecovered(raw []byte) (map[string]interface{}, err
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -143,7 +143,7 @@ func (p *Parser) proveReplicaUpdates(raw, rawReturn []byte) (map[string]interfac
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -155,7 +155,7 @@ func (p *Parser) proveCommitAggregate(raw []byte) (map[string]interface{}, error
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -167,7 +167,7 @@ func (p *Parser) preCommitSectorBatch(raw []byte) (map[string]interface{}, error
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -179,7 +179,7 @@ func (p *Parser) disputeWindowedPoSt(raw []byte) (map[string]interface{}, error)
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -191,7 +191,7 @@ func (p *Parser) compactSectorNumbers(raw []byte) (map[string]interface{}, error
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -203,7 +203,7 @@ func (p *Parser) compactPartitions(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -215,7 +215,7 @@ func (p *Parser) changeMultiaddrs(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -227,7 +227,7 @@ func (p *Parser) checkSectorProven(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -239,7 +239,7 @@ func (p *Parser) extendSectorExpiration(raw []byte) (map[string]interface{}, err
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -251,7 +251,7 @@ func (p *Parser) changePeerID(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -263,7 +263,7 @@ func (p *Parser) changeWorkerAddress(raw []byte) (map[string]interface{}, error)
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -275,7 +275,7 @@ func (p *Parser) reportConsensusFault(raw []byte) (map[string]interface{}, error
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -287,7 +287,7 @@ func (p *Parser) changeBeneficiary(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -299,7 +299,7 @@ func (p *Parser) confirmSectorProofsValid(raw []byte) (map[string]interface{}, e
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -311,7 +311,7 @@ func (p *Parser) minerConstructor(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -323,7 +323,7 @@ func (p *Parser) parseWithdrawBalance(raw []byte) (map[string]interface{}, error
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -335,7 +335,7 @@ func (p *Parser) applyRewards(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -347,7 +347,7 @@ func (p *Parser) preCommitSector(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -359,7 +359,7 @@ func (p *Parser) proveCommitSector(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -371,7 +371,7 @@ func (p *Parser) submitWindowedPoSt(raw []byte) (map[string]interface{}, error) 
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
@@ -383,14 +383,14 @@ func (p *Parser) onDeferredCronEvent(raw []byte) (map[string]interface{}, error)
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = params
+	metadata[tools.ParamsKey] = params
 	return metadata, nil
 }
 
 func (p *Parser) getBeneficiary(rawParams, rawReturn []byte) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
 	if rawParams != nil {
-		metadata["Params"] = base64.StdEncoding.EncodeToString(rawParams)
+		metadata[tools.ParamsKey] = base64.StdEncoding.EncodeToString(rawParams)
 	}
 	reader := bytes.NewReader(rawReturn)
 	var beneficiaryReturn miner.GetBeneficiaryReturn
@@ -398,7 +398,7 @@ func (p *Parser) getBeneficiary(rawParams, rawReturn []byte) (map[string]interfa
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Return"] = getBeneficiryReturn{
+	metadata[tools.ReturnKey] = getBeneficiryReturn{
 		Active: activeBeneficiary{
 			Beneficiary: beneficiaryReturn.Active.Beneficiary.String(),
 			Term: beneficiaryTerm{

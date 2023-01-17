@@ -145,7 +145,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, operations *[]*rosettaTypes.Op
 		case "Send":
 			{
 				metadata := make(map[string]interface{})
-				metadata["Params"] = trace.Msg.Params
+				metadata[tools.ParamsKey] = trace.Msg.Params
 
 				*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
 					trace.Msg.Value.Neg().String(), opStatus, false, &metadata)

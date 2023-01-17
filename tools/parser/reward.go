@@ -2,9 +2,9 @@ package parser
 
 import (
 	"bytes"
-	"errors"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/specs-actors/actors/builtin/reward"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 )
 
 func (p *Parser) parseReward(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt) (map[string]interface{}, error) {
@@ -21,7 +21,7 @@ func (p *Parser) parseReward(txType string, msg *filTypes.Message, msgRct *filTy
 		if err != nil {
 			return metadata, err
 		}
-		metadata["Params"] = blockRewards
+		metadata[tools.ParamsKey] = blockRewards
 		return metadata, nil
 	case "ThisEpochReward":
 		metadata := make(map[string]interface{})
@@ -31,10 +31,10 @@ func (p *Parser) parseReward(txType string, msg *filTypes.Message, msgRct *filTy
 		if err != nil {
 			return metadata, err
 		}
-		metadata["Params"] = epochRewards
+		metadata[tools.ParamsKey] = epochRewards
 		return metadata, nil
 	}
-	return map[string]interface{}{}, errors.New("not method")
+	return map[string]interface{}{}, errUnknownMethod
 }
 
 func (p *Parser) awardBlockReward(raw []byte) (map[string]interface{}, error) {
@@ -45,6 +45,6 @@ func (p *Parser) awardBlockReward(raw []byte) (map[string]interface{}, error) {
 	if err != nil {
 		return metadata, err
 	}
-	metadata["Params"] = blockRewards
+	metadata[tools.ParamsKey] = blockRewards
 	return metadata, nil
 }
