@@ -138,10 +138,13 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, ethLogs [
 	toAdd := tools.GetActorAddressInfo(trace.Msg.To, height, key, lib)
 	appendAddressInfo(addresses, fromAdd, toAdd)
 
+	metadata := make(map[string]interface{})
+	metadata["GasUsed"] = trace.MsgRct.GasUsed
+
 	switch baseMethod {
 	case "InvokeContract", "InvokeContractReadOnly", "InvokeContractDelegate":
 		{
-			metadata := make(map[string]interface{})
+
 			metadata["Params"] = "0x" + hex.EncodeToString(trace.Msg.Params)
 			metadata["Return"] = "0x" + hex.EncodeToString(trace.MsgRct.Return)
 
@@ -158,7 +161,6 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, ethLogs [
 		}
 	case "Create", "Create2":
 		{
-			metadata := make(map[string]interface{})
 			var result eam.CreateReturn
 			r := bytes.NewReader(trace.MsgRct.Return)
 			if err := result.UnmarshalCBOR(r); err != nil {
@@ -191,7 +193,6 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, ethLogs [
 		}
 	case "Send":
 		{
-			metadata := make(map[string]interface{})
 			metadata["Params"] = trace.Msg.Params
 
 			*operations = AppendOp(*operations, baseMethod, fromAdd.GetAddress(),
