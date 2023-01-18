@@ -131,8 +131,13 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, ethLogs [
 
 	baseMethod, err := tools.GetMethodName(trace.Msg, height, key, lib)
 	if err != nil {
-		rosetta.Logger.Error("could not get method name. Error:", err.Message, err.Details)
-		baseMethod = "unknown"
+		zap.S().Errorf("Error when trying to get method name in tx cid'%s': %s", mainMsgCid.String(), err.Message)
+		baseMethod = tools.UnknownStr
+	}
+
+	if err == nil && baseMethod == tools.UnknownStr {
+		zap.S().Errorf("Could not get method name in transaction '%s'", mainMsgCid.String())
+		baseMethod = tools.UnknownStr
 	}
 
 	fromAdd := tools.GetActorAddressInfo(trace.Msg.From, height, key, lib)
@@ -145,7 +150,6 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, ethLogs [
 	switch baseMethod {
 	case "InvokeContract", "InvokeContractReadOnly", "InvokeContractDelegate":
 		{
-
 			metadata["Params"] = "0x" + hex.EncodeToString(trace.Msg.Params)
 			metadata["Return"] = "0x" + hex.EncodeToString(trace.MsgRct.Return)
 
@@ -160,7 +164,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, ethLogs [
 			*operations = AppendOp(*operations, baseMethod, toAdd.GetAddress(),
 				trace.Msg.Value.String(), opStatus, true, &metadata)
 		}
-	case "Create", "Create2":
+	case "Create", "Create2", "CreateExternal":
 		{
 			var result eam.CreateReturn
 			r := bytes.NewReader(trace.MsgRct.Return)

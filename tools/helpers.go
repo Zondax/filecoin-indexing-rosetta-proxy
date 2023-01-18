@@ -108,17 +108,17 @@ func GetMethodName(msg *filTypes.Message, height int64, key filTypes.TipSetKey, 
 	}
 
 	val := reflect.Indirect(reflect.ValueOf(method))
-	idx := int(msg.Method)
-	if idx > 0 {
-		idx--
+
+	for i := 0; i < val.Type().NumField(); i++ {
+		field := val.Field(i)
+		methodNum := field.Uint()
+		if methodNum == uint64(msg.Method) {
+			methodName := val.Type().Field(i).Name
+			return methodName, nil
+		}
 	}
 
-	if val.Type().NumField() <= idx {
-		return UnknownStr, nil
-	}
-
-	methodName := val.Type().Field(idx).Name
-	return methodName, nil
+	return UnknownStr, nil
 }
 
 func GetActorAddressInfo(add address.Address, height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) types.AddressInfo {
