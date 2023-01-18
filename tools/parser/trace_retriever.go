@@ -8,6 +8,7 @@ import (
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
+	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
@@ -54,7 +55,7 @@ func (t *TraceRetriever) GetStateCompute(ctx context.Context, node *api.FullNode
 
 func (t *TraceRetriever) GetEthLogs(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) ([]EthLog, *rosettaTypes.Error) {
 	fromBlockHex := strconv.FormatUint(uint64(tipSet.Height()), 16)
-	res, err := (*node).EthGetLogs(ctx, &api.EthFilterSpec{
+	res, err := (*node).EthGetLogs(ctx, &ethtypes.EthFilterSpec{
 		FromBlock: &fromBlockHex,
 		ToBlock:   &fromBlockHex,
 	})

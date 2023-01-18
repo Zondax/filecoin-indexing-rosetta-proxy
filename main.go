@@ -129,7 +129,7 @@ func startRosettaRPC(ctx context.Context, api api.FullNode) error {
 	}
 
 	// Create instance of RosettaFilecoinLib for current network
-	r := rosettaFilecoinLib.NewRosettaConstructionFilecoin(tools.NetworkName)
+	r := rosettaFilecoinLib.NewRosettaConstructionFilecoin(api)
 
 	// Build trace retriever
 	retriever := parser.NewTraceRetriever(

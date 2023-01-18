@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/go-state-types/builtin/v10/eam"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
+	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
@@ -168,7 +169,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, ethLogs [
 				break
 			}
 
-			ethHash, err := api.NewEthHashFromCid(*mainMsgCid)
+			ethHash, err := ethtypes.EthHashFromCid(*mainMsgCid)
 			if err != nil {
 				zap.S().Errorf("error getting eth hash from cid for methos '%s': %v", baseMethod, err)
 				break
@@ -312,7 +313,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, ethLogs [
 }
 
 func searchEthLogs(logs []EthLog, msg *filTypes.Message) (error, []EthLog) {
-	ethHash, err := api.NewEthHashFromCid(msg.Cid())
+	ethHash, err := ethtypes.EthHashFromCid(msg.Cid())
 	if err != nil {
 		return err, nil
 	}
