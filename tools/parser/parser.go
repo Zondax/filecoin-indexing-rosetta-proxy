@@ -171,11 +171,11 @@ func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTy
 	case "cron":
 		return p.parseCron(txType, msg)
 	case "account":
-		return p.parseAccount(txType, msg, msgRct)
+		return p.parseAccount(txType, msg)
 	case "storagepower":
 		return p.parseStoragepower(txType, msg, msgRct, height, key)
 	case "storageminer":
-		return p.parseStorageminer(txType, msg, msgRct, height, key)
+		return p.parseStorageminer(txType, msg, msgRct)
 	case "storagemarket":
 		return p.parseStoragemarket(txType, msg, msgRct)
 	case "paymentchannel":
@@ -185,7 +185,7 @@ func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTy
 	case "reward":
 		return p.parseReward(txType, msg, msgRct)
 	case "verifiedregistry":
-		return p.parseVerifiedregistry(txType, msg, msgRct)
+		return p.parseVerifiedRegistry(txType, msg, msgRct)
 	case "evm":
 		return p.parseEvm(txType, msg, msgRct, ethLogs)
 	default:

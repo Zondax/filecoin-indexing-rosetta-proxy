@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	initActor "github.com/filecoin-project/specs-actors/actors/builtin/init"
 	"github.com/filecoin-project/specs-actors/actors/builtin/power"
@@ -136,7 +135,7 @@ func ParseMsigParams(msg *filTypes.Message, height int64, key filTypes.TipSetKey
 	return parsedParams, nil
 }
 
-func (p *Parser) parseAccount(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt) (map[string]interface{}, error) {
+func (p *Parser) parseAccount(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
 	switch txType {
 	case "Send":
 		return p.parseSend(msg), nil
@@ -152,20 +151,4 @@ func (p *Parser) parseSend(msg *filTypes.Message) map[string]interface{} {
 	metadata := make(map[string]interface{})
 	metadata[tools.ParamsKey] = msg.Params
 	return metadata
-}
-
-func searchEthLogs(logs []EthLog, msg *filTypes.Message) ([]EthLog, error) {
-	ethHash, err := api.NewEthHashFromCid(msg.Cid())
-	if err != nil {
-		return nil, err
-	}
-
-	res := make([]EthLog, 0)
-	for _, log := range logs {
-		if log["transactionHash"] == ethHash.String() {
-			res = append(res, log)
-		}
-	}
-
-	return res, nil
 }

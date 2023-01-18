@@ -3,7 +3,10 @@ package parser
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/filecoin-project/go-state-types/builtin"
+	"github.com/filecoin-project/go-state-types/builtin/v10/miner"
 	"github.com/filecoin-project/go-state-types/builtin/v10/multisig"
+	"github.com/filecoin-project/go-state-types/cbor"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 )
@@ -14,7 +17,7 @@ func (p *Parser) parseMultisig(txType string, msg *filTypes.Message, msgRct *fil
 	case "Send":
 		return p.parseSend(msg), nil
 	case "Propose":
-		return p.propose(msg, msgRct, height, key)
+		return p.propose(msg, msgRct)
 	case "Approve":
 		return p.approve(msg, msgRct, height, key)
 	case "Cancel":
@@ -43,13 +46,26 @@ func (p *Parser) parseMsigParams(msg *filTypes.Message, height int64, key filTyp
 	return paramsMap, nil
 }
 
-func (p *Parser) propose(msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	metadata, err := ParseProposeParams(msg, height, key, p.lib)
+func (p *Parser) propose(msg *filTypes.Message, msgRct *filTypes.MessageReceipt) (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
+	var proposeParams multisig.ProposeParams
+	reader := bytes.NewReader(msg.Params)
+	err := proposeParams.UnmarshalCBOR(reader)
 	if err != nil {
 		return metadata, err
 	}
+	innerParams, err := p.innerProposeParams(proposeParams)
+	if err != nil {
+		// TODO: log.
+	}
+	metadata[tools.ParamsKey] = propose{
+		To:     proposeParams.To.String(),
+		Value:  proposeParams.Value.String(),
+		Method: uint64(proposeParams.Method),
+		Params: innerParams,
+	}
 	var proposeReturn multisig.ProposeReturn
-	reader := bytes.NewReader(msgRct.Return)
+	reader = bytes.NewReader(msgRct.Return)
 	err = proposeReturn.UnmarshalCBOR(reader)
 	if err != nil {
 		return metadata, err
@@ -93,4 +109,68 @@ func (p *Parser) removeSigner(msg *filTypes.Message, height int64, key filTypes.
 	}
 	metadata[tools.ParamsKey] = params
 	return metadata, nil
+}
+
+func (p *Parser) innerProposeParams(propose multisig.ProposeParams) (cbor.Unmarshaler, error) {
+	reader := bytes.NewReader(propose.Params)
+	switch propose.Method {
+	case builtin.MethodSend:
+		var params multisig.ProposeParams
+		err := params.UnmarshalCBOR(reader)
+		if err != nil {
+			return nil, err
+		}
+		return &params, nil
+	case builtin.MethodsMultisig.Approve,
+		builtin.MethodsMultisig.Cancel:
+		var params multisig.TxnIDParams
+		err := params.UnmarshalCBOR(reader)
+		if err != nil {
+			return nil, err
+		}
+		return &params, nil
+	case builtin.MethodsMultisig.AddSigner:
+		var params multisig.AddSignerParams
+		err := params.UnmarshalCBOR(reader)
+		if err != nil {
+			return nil, err
+		}
+		return &params, nil
+	case builtin.MethodsMultisig.RemoveSigner:
+		var params multisig.RemoveSignerParams
+		err := params.UnmarshalCBOR(reader)
+		if err != nil {
+			return nil, err
+		}
+		return &params, nil
+	case builtin.MethodsMultisig.SwapSigner:
+		var params multisig.SwapSignerParams
+		err := params.UnmarshalCBOR(reader)
+		if err != nil {
+			return nil, err
+		}
+		return &params, nil
+	case builtin.MethodsMultisig.ChangeNumApprovalsThreshold:
+		var params multisig.ChangeNumApprovalsThresholdParams
+		err := params.UnmarshalCBOR(reader)
+		if err != nil {
+			return nil, err
+		}
+		return &params, nil
+	case builtin.MethodsMultisig.LockBalance:
+		var params multisig.LockBalanceParams
+		err := params.UnmarshalCBOR(reader)
+		if err != nil {
+			return nil, err
+		}
+		return &params, nil
+	case builtin.MethodsMiner.WithdrawBalance:
+		var params miner.WithdrawBalanceParams
+		err := params.UnmarshalCBOR(reader)
+		if err != nil {
+			return nil, err
+		}
+		return &params, nil
+	}
+	return nil, errUnknownMethod
 }

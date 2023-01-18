@@ -1,5 +1,7 @@
 package parser
 
+import "github.com/filecoin-project/go-state-types/cbor"
+
 type EthLog map[string]interface{}
 
 type controlAddress struct {
@@ -34,4 +36,11 @@ type proposed struct {
 type getBeneficiryReturn struct {
 	Active   activeBeneficiary `json:"active"`
 	Proposed proposed          `json:"proposed"`
+}
+
+type propose struct {
+	To     string
+	Value  string
+	Method uint64
+	Params cbor.Unmarshaler
 }

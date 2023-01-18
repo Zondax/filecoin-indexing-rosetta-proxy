@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"github.com/filecoin-project/go-state-types/builtin/v10/evm"
+	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 )
@@ -36,4 +37,20 @@ func (p *Parser) evmConstructor(raw []byte) (map[string]interface{}, error) {
 	}
 	metadata[tools.ParamsKey] = params
 	return metadata, nil
+}
+
+func searchEthLogs(logs []EthLog, msg *filTypes.Message) ([]EthLog, error) {
+	ethHash, err := api.NewEthHashFromCid(msg.Cid())
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]EthLog, 0)
+	for _, log := range logs {
+		if log["transactionHash"] == ethHash.String() {
+			res = append(res, log)
+		}
+	}
+
+	return res, nil
 }
