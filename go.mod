@@ -19,6 +19,8 @@ require (
 	go.uber.org/zap v1.23.0
 )
 
+replace github.com/filecoin-project/lotus => github.com/filecoin-project/lotus v1.20.0-hyperpsace-0119
+
 require (
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/GeertJohan/go.incremental v1.0.0 // indirect
