@@ -153,7 +153,7 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, ethLogs [
 			metadata["Params"] = "0x" + hex.EncodeToString(trace.Msg.Params)
 			metadata["Return"] = "0x" + hex.EncodeToString(trace.MsgRct.Return)
 
-			err, logs := searchEthLogs(ethLogs, trace.Msg)
+			err, logs := searchEthLogs(ethLogs, mainMsgCid.String())
 			if err != nil {
 				rosetta.Logger.Error("could not get ethLogs:", err.Error())
 			}
@@ -172,6 +172,12 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, ethLogs [
 				zap.S().Errorf("error unmarshaling return value for method '%s': %v", baseMethod, err)
 				break
 			}
+
+			err, logs := searchEthLogs(ethLogs, mainMsgCid.String())
+			if err != nil {
+				rosetta.Logger.Error("could not get ethLogs:", err.Error())
+			}
+			metadata["ethLogs"] = logs
 
 			ethHash, err := ethtypes.EthHashFromCid(*mainMsgCid)
 			if err != nil {
@@ -316,15 +322,10 @@ func ProcessTrace(trace *filTypes.ExecutionTrace, mainMsgCid *cid.Cid, ethLogs [
 	}
 }
 
-func searchEthLogs(logs []EthLog, msg *filTypes.Message) (error, []EthLog) {
-	ethHash, err := ethtypes.EthHashFromCid(msg.Cid())
-	if err != nil {
-		return err, nil
-	}
-
+func searchEthLogs(logs []EthLog, msgCid string) (error, []EthLog) {
 	res := make([]EthLog, 0)
 	for _, log := range logs {
-		if log["transactionHash"] == ethHash.String() {
+		if log["transactionCid"] == msgCid {
 			res = append(res, log)
 		}
 	}
