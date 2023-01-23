@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"github.com/filecoin-project/go-state-types/builtin/v10/evm"
-	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 )
@@ -17,7 +16,7 @@ func (p *Parser) parseEvm(txType string, msg *filTypes.Message, msgRct *filTypes
 	case "InvokeContract", "InvokeContractReadOnly", "InvokeContractDelegate":
 		metadata[tools.ParamsKey] = "0x" + hex.EncodeToString(msg.Params)
 		metadata[tools.ReturnKey] = "0x" + hex.EncodeToString(msgRct.Return)
-		logs, err := searchEthLogs(ethLogs, msg)
+		logs, err := searchEthLogs(ethLogs, msg.Cid().String())
 		if err != nil {
 			return metadata, err
 		}
@@ -39,18 +38,12 @@ func (p *Parser) evmConstructor(raw []byte) (map[string]interface{}, error) {
 	return metadata, nil
 }
 
-func searchEthLogs(logs []EthLog, msg *filTypes.Message) ([]EthLog, error) {
-	ethHash, err := api.NewEthHashFromCid(msg.Cid())
-	if err != nil {
-		return nil, err
-	}
-
+func searchEthLogs(logs []EthLog, msgCid string) ([]EthLog, error) {
 	res := make([]EthLog, 0)
 	for _, log := range logs {
-		if log["transactionHash"] == ethHash.String() {
+		if log["transactionCid"] == msgCid {
 			res = append(res, log)
 		}
 	}
-
 	return res, nil
 }

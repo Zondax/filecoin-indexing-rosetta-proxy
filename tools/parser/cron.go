@@ -10,15 +10,7 @@ import (
 func (p *Parser) parseCron(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
 	switch txType {
 	case "Constructor":
-		metadata := make(map[string]interface{})
-		reader := bytes.NewReader(msg.Params)
-		var constructor cron.ConstructorParams
-		err := constructor.UnmarshalCBOR(reader)
-		if err != nil {
-			return metadata, err
-		}
-		metadata[tools.ParamsKey] = constructor
-		return metadata, nil
+		return p.cronConstructor(msg.Params)
 	case "EpochTick":
 	}
 	return map[string]interface{}{}, errUnknownMethod

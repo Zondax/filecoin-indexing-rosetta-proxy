@@ -64,7 +64,7 @@ func (p *Parser) parseStorageminer(txType string, msg *filTypes.Message, msgRct 
 	case "ProveCommitAggregate":
 		return p.proveCommitAggregate(msg.Params)
 	case "ProveReplicaUpdates":
-		return p.proveReplicaUpdates(msg.Params, msgRct.Return)
+		return p.proveReplicaUpdates(msg.Params)
 	case "ChangeBeneficiary":
 		return p.changeBeneficiary(msg.Params)
 	case "GetBeneficiary":
@@ -135,7 +135,7 @@ func (p *Parser) declareFaultsRecovered(raw []byte) (map[string]interface{}, err
 	return metadata, nil
 }
 
-func (p *Parser) proveReplicaUpdates(raw, rawReturn []byte) (map[string]interface{}, error) {
+func (p *Parser) proveReplicaUpdates(raw []byte) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
 	reader := bytes.NewReader(raw)
 	var params miner.ProveReplicaUpdatesParams
