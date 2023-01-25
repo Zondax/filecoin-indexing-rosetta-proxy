@@ -3,7 +3,7 @@ package parser
 import (
 	"bytes"
 	"encoding/base64"
-	"github.com/filecoin-project/go-state-types/builtin/v10/market"
+	"github.com/filecoin-project/go-state-types/builtin/v9/market" // TODO: v10 does not support ComputeDataCommitmentParams and OnMinerSectorsTerminateParams
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 )

@@ -5,10 +5,11 @@ import (
 	"encoding/hex"
 	"github.com/filecoin-project/go-state-types/builtin/v10/evm"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
+	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 )
 
-func (p *Parser) parseEvm(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, ethLogs []EthLog) (map[string]interface{}, error) {
+func (p *Parser) parseEvm(txType string, msg *filTypes.Message, msgCid cid.Cid, msgRct *filTypes.MessageReceipt, ethLogs []EthLog) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
 	switch txType {
 	case "Constructor":
@@ -16,7 +17,7 @@ func (p *Parser) parseEvm(txType string, msg *filTypes.Message, msgRct *filTypes
 	case "InvokeContract", "InvokeContractReadOnly", "InvokeContractDelegate":
 		metadata[tools.ParamsKey] = "0x" + hex.EncodeToString(msg.Params)
 		metadata[tools.ReturnKey] = "0x" + hex.EncodeToString(msgRct.Return)
-		logs, err := searchEthLogs(ethLogs, msg.Cid().String())
+		logs, err := searchEthLogs(ethLogs, msgCid.String())
 		if err != nil {
 			return metadata, err
 		}

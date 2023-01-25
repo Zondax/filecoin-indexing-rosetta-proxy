@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
+	"github.com/ipfs/go-cid"
 	"github.com/shopspring/decimal"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
 	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
+	"go.uber.org/zap"
 	"time"
 
 	"strings"
@@ -40,14 +42,15 @@ func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.T
 		if !hasMessage(trace) {
 			continue
 		}
-		transaction, err := p.parseTrace(trace.ExecutionTrace, tipSet, ethLogs, *blockHash, trace.MsgCid.String(), tipsetKey)
+
+		transaction, err := p.parseTrace(trace.ExecutionTrace, trace.MsgCid, tipSet, ethLogs, *blockHash, trace.MsgCid.String(), tipsetKey)
 		if err != nil {
 			continue
 		}
 		transactions = append(transactions, transaction)
 
 		// SubTransactions
-		transactions = append(transactions, p.parseSubTxs(trace.ExecutionTrace.Subcalls, tipSet, ethLogs, *blockHash,
+		transactions = append(transactions, p.parseSubTxs(trace.ExecutionTrace.Subcalls, trace.MsgCid, tipSet, ethLogs, *blockHash,
 			trace.Msg.Cid().String(), tipsetKey)...)
 
 		// Fees
@@ -59,29 +62,35 @@ func (p *Parser) ParseTransactions(traces []*api.InvocResult, tipSet *filTypes.T
 	return transactions, &p.addresses, nil
 }
 
-func (p *Parser) parseSubTxs(subTxs []filTypes.ExecutionTrace, tipSet *filTypes.TipSet, ethLogs []EthLog, blockHash, txHash string,
+func (p *Parser) parseSubTxs(subTxs []filTypes.ExecutionTrace, mainMsgCid cid.Cid, tipSet *filTypes.TipSet, ethLogs []EthLog, blockHash, txHash string,
 	key filTypes.TipSetKey) (txs []*types.Transaction) {
 
 	for _, subTx := range subTxs {
-		subTransaction, err := p.parseTrace(subTx, tipSet, ethLogs, blockHash, txHash, key)
+		subTransaction, err := p.parseTrace(subTx, mainMsgCid, tipSet, ethLogs, blockHash, txHash, key)
 		if err != nil {
 			continue
 		}
 		txs = append(txs, subTransaction)
-		txs = append(txs, p.parseSubTxs(subTx.Subcalls, tipSet, ethLogs, blockHash, txHash, key)...)
+		txs = append(txs, p.parseSubTxs(subTx.Subcalls, mainMsgCid, tipSet, ethLogs, blockHash, txHash, key)...)
 	}
 	return
 }
 
-func (p *Parser) parseTrace(trace filTypes.ExecutionTrace, tipSet *filTypes.TipSet, ethLogs []EthLog, blockHash, txHash string,
+func (p *Parser) parseTrace(trace filTypes.ExecutionTrace, msgCid cid.Cid, tipSet *filTypes.TipSet, ethLogs []EthLog, blockHash, txHash string,
 	key filTypes.TipSetKey) (*types.Transaction, error) {
 	txType, err := tools.GetMethodName(trace.Msg, int64(tipSet.Height()), key, p.lib)
 	if err != nil {
-		txType = "unknown"
+		zap.S().Errorf("Error when trying to get method name in tx cid'%s': %s", msgCid.String(), err.Message)
+		txType = tools.UnknownStr
 	}
-	metadata, mErr := p.getMetadata(txType, trace.Msg, trace.MsgRct, int64(tipSet.Height()), key, ethLogs)
+	if err == nil && txType == tools.UnknownStr {
+		zap.S().Errorf("Could not get method name in transaction '%s'", msgCid.String())
+		txType = tools.UnknownStr
+	}
+	metadata, mErr := p.getMetadata(txType, trace.Msg, msgCid, trace.MsgRct, int64(tipSet.Height()), key, ethLogs)
+	metadata["GasUsed"] = trace.MsgRct.GasUsed // TODO: cases where metadata nil?
 	if mErr != nil {
-		// TODO: log
+		zap.S().Warnf("Could not get metadata for transaction '%s'", msgCid.String())
 	}
 	if trace.Error != "" {
 		metadata["Error"] = trace.Error
@@ -154,7 +163,7 @@ func getStatus(code string) string {
 	return code
 }
 
-func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey, ethLogs []EthLog) (map[string]interface{}, error) {
+func (p *Parser) getMetadata(txType string, msg *filTypes.Message, mainMsgCid cid.Cid, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey, ethLogs []EthLog) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
 	var err error
 	actorCode, err := database.ActorsDB.GetActorCode(msg.To, height, key)
@@ -187,7 +196,7 @@ func (p *Parser) getMetadata(txType string, msg *filTypes.Message, msgRct *filTy
 	case "verifiedregistry":
 		return p.parseVerifiedRegistry(txType, msg, msgRct)
 	case "evm":
-		return p.parseEvm(txType, msg, msgRct, ethLogs)
+		return p.parseEvm(txType, msg, mainMsgCid, msgRct, ethLogs)
 	default:
 		return metadata, errNotValidActor
 	}
