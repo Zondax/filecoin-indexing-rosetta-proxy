@@ -11,6 +11,8 @@ import (
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
+	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 	"strconv"
 	"time"
@@ -118,4 +120,60 @@ func (t *TraceRetriever) GetEthLogs(ctx context.Context, node *api.FullNode, tip
 	}
 
 	return logs, nil
+}
+
+func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageReceipt,
+	height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (*types.AddressInfo, error) {
+
+	toAddressInfo := tools.GetActorAddressInfo(msg.To, height, key, lib)
+	actorName, err := lib.BuiltinActors.GetActorNameFromCid(toAddressInfo.ActorCid)
+	if err != nil {
+		return nil, err
+	}
+
+	switch actorName {
+	case "init":
+		{
+			params, err := ParseInitActorExecParams(msg.Params)
+			if err != nil {
+				return nil, err
+			}
+			createdActorName, err := lib.BuiltinActors.GetActorNameFromCid(params.CodeCID)
+			if err != nil {
+				return nil, err
+			}
+			switch createdActorName {
+			case "multisig", "paymentchannel":
+				{
+					execReturn, err := ParseExecReturn(receipt.Return)
+					if err != nil {
+						return nil, err
+					}
+
+					return &types.AddressInfo{
+						Short:     execReturn.IDAddress.String(),
+						Robust:    execReturn.RobustAddress.String(),
+						ActorCid:  params.CodeCID,
+						ActorType: createdActorName,
+					}, nil
+				}
+			default:
+				return nil, nil
+			}
+		}
+	case "storagepower":
+		{
+			execReturn, err := ParseExecReturn(receipt.Return)
+			if err != nil {
+				return nil, err
+			}
+			return &types.AddressInfo{
+				Short:     execReturn.IDAddress.String(),
+				Robust:    execReturn.RobustAddress.String(),
+				ActorType: "miner",
+			}, nil
+		}
+	default:
+		return nil, nil
+	}
 }

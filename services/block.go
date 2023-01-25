@@ -34,6 +34,7 @@ type BlockAPIService struct {
 	node           api.FullNode
 	traceRetriever *parser.TraceRetriever
 	rosettaLib     *filLib.RosettaConstructionFilecoin
+	p              *parser.Parser
 }
 
 // NewBlockAPIService creates a new instance of a BlockAPIService.
@@ -44,6 +45,7 @@ func NewBlockAPIService(network *rosettaTypes.NetworkIdentifier, api *api.FullNo
 		node:           *api,
 		traceRetriever: retriever,
 		rosettaLib:     r,
+		p:              parser.NewParser(r),
 	}
 }
 
@@ -141,14 +143,29 @@ func (s *BlockAPIService) Block(
 	}
 
 	// Build transactions data
-	var transactions *[]*rosettaTypes.Transaction
-	var discoveredAddresses *types.AddressInfoMap
+	var (
+		parsedTraces        []*types.Transaction
+		transactions        []*rosettaTypes.Transaction
+		discoveredAddresses *types.AddressInfoMap
+		parseError          error
+	)
+
 	if requestedHeight > 1 {
 		states, err := s.traceRetriever.GetStateCompute(ctx, &s.node, tipSet)
 		if err != nil {
 			return nil, err
 		}
-		transactions, discoveredAddresses = parser.BuildTransactions(states, int64(tipSet.Height()), tipSet.Key(), s.rosettaLib)
+
+		// TODO: uncomment for wallaby
+		//ethLogs, err := s.traceRetriever.GetEthLogs(ctx, &s.node, tipSet)
+		//if err != nil {
+		//	return nil, err
+		//}
+		parsedTraces, discoveredAddresses, parseError = s.p.ParseTransactions(states.Trace, tipSet, nil) // TODO: fill with ethLogs
+		if parseError != nil {
+			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, parseError, true)
+		}
+		transactions = s.p.ToRosetta(parsedTraces)
 	}
 
 	// Add block metadata
@@ -186,7 +203,7 @@ func (s *BlockAPIService) Block(
 		Metadata:              md,
 	}
 	if transactions != nil {
-		respBlock.Transactions = *transactions
+		respBlock.Transactions = transactions
 	}
 
 	resp := &rosettaTypes.BlockResponse{
