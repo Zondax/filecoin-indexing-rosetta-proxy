@@ -10,23 +10,23 @@ import (
 
 func (p *Parser) parseStoragemarket(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt) (map[string]interface{}, error) {
 	switch txType {
-	case "Send":
+	case tools.MethodSend:
 		return p.parseSend(msg), nil
-	case "Constructor":
-	case "AddBalance":
-	case "WithdrawBalance":
+	case tools.MethodConstructor:
+	case tools.MethodAddBalance:
+	case tools.MethodWithdrawBalance:
 		return p.withdrawBalance(msg.Params, msgRct.Return)
-	case "PublishStorageDeals":
+	case tools.MethodPublishStorageDeals:
 		return p.publishStorageDeals(msg.Params, msgRct.Return)
-	case "VerifyDealsForActivation":
+	case tools.MethodVerifyDealsForActivation:
 		return p.verifyDealsForActivation(msg.Params, msgRct.Return)
-	case "ActivateDeals":
+	case tools.MethodActivateDeals:
 		return p.activateDeals(msg.Params)
-	case "OnMinerSectorsTerminate":
+	case tools.MethodOnMinerSectorsTerminate:
 		return p.onMinerSectorsTerminate(msg.Params)
-	case "ComputeDataCommitment":
+	case tools.MethodComputeDataCommitment:
 		return p.computeDataCommitment(msg.Params, msgRct.Return)
-	case "CronTick":
+	case tools.MethodCronTick:
 	}
 	return map[string]interface{}{}, errUnknownMethod
 }

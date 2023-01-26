@@ -157,10 +157,10 @@ func (s *BlockAPIService) Block(
 		}
 
 		// TODO: uncomment for wallaby
-		//ethLogs, err := s.traceRetriever.GetEthLogs(ctx, &s.node, tipSet)
-		//if err != nil {
-		//	return nil, err
-		//}
+		// ethLogs, err := s.traceRetriever.GetEthLogs(ctx, &s.node, tipSet)
+		// if err != nil {
+		//	 return nil, err
+		// }
 		parsedTraces, discoveredAddresses, parseError = s.p.ParseTransactions(states.Trace, tipSet, nil) // TODO: fill with ethLogs
 		if parseError != nil {
 			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, parseError, true)

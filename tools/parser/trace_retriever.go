@@ -6,6 +6,7 @@ import (
 	"fmt"
 	ds "github.com/Zondax/zindexer/components/connections/data_store"
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
+	"github.com/filecoin-project/go-state-types/manifest"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
@@ -131,7 +132,7 @@ func (p *Parser) searchForActorCreation(msg *filTypes.Message, receipt *filTypes
 	}
 
 	switch actorName {
-	case "init":
+	case manifest.InitKey:
 		{
 			params, err := ParseInitActorExecParams(msg.Params)
 			if err != nil {
@@ -142,7 +143,7 @@ func (p *Parser) searchForActorCreation(msg *filTypes.Message, receipt *filTypes
 				return nil, err
 			}
 			switch createdActorName {
-			case "multisig", "paymentchannel":
+			case manifest.MultisigKey, manifest.PaychKey:
 				{
 					execReturn, err := ParseExecReturn(receipt.Return)
 					if err != nil {
@@ -160,7 +161,7 @@ func (p *Parser) searchForActorCreation(msg *filTypes.Message, receipt *filTypes
 				return nil, nil
 			}
 		}
-	case "storagepower":
+	case manifest.PowerKey:
 		{
 			execReturn, err := ParseExecReturn(receipt.Return)
 			if err != nil {

@@ -11,63 +11,63 @@ import (
 
 func (p *Parser) parseStorageminer(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt) (map[string]interface{}, error) {
 	switch txType {
-	case "Send":
+	case tools.MethodSend:
 		return p.parseSend(msg), nil
-	case "Constructor":
+	case tools.MethodConstructor:
 		return p.minerConstructor(msg.Params)
-	case "AwardBlockReward": // ?
-	case "ControlAddresses":
+	case tools.MethodAwardBlockReward: // ?
+	case tools.MethodControlAddresses:
 		return p.controlAddresses(msg.Params, msgRct.Return)
-	case "ChangeWorkerAddress":
+	case tools.MethodChangeWorkerAddress:
 		return p.changeWorkerAddress(msg.Params)
-	case "ChangePeerID":
+	case tools.MethodChangePeerID:
 		return p.changePeerID(msg.Params)
-	case "SubmitWindowedPoSt":
+	case tools.MethodSubmitWindowedPoSt:
 		return p.submitWindowedPoSt(msg.Params)
-	case "PreCommitSector":
+	case tools.MethodPreCommitSector:
 		return p.preCommitSector(msg.Params)
-	case "ProveCommitSector":
+	case tools.MethodProveCommitSector:
 		return p.proveCommitSector(msg.Params)
-	case "ExtendSectorExpiration":
+	case tools.MethodExtendSectorExpiration:
 		return p.extendSectorExpiration(msg.Params)
-	case "TerminateSectors":
+	case tools.MethodTerminateSectors:
 		return p.terminateSectors(msg.Params, msgRct.Return)
-	case "DeclareFaults":
+	case tools.MethodDeclareFaults:
 		return p.declareFaults(msg.Params)
-	case "DeclareFaultsRecovered":
+	case tools.MethodDeclareFaultsRecovered:
 		return p.declareFaultsRecovered(msg.Params)
-	case "OnDeferredCronEvent":
+	case tools.MethodOnDeferredCronEvent:
 		return p.onDeferredCronEvent(msg.Params)
-	case "CheckSectorProven":
+	case tools.MethodCheckSectorProven:
 		return p.checkSectorProven(msg.Params)
-	case "ApplyRewards":
+	case tools.MethodApplyRewards:
 		return p.applyRewards(msg.Params)
-	case "ReportConsensusFault":
+	case tools.MethodReportConsensusFault:
 		return p.reportConsensusFault(msg.Params)
-	case "WithdrawBalance":
+	case tools.MethodWithdrawBalance:
 		return p.parseWithdrawBalance(msg.Params)
-	case "ConfirmSectorProofsValid":
+	case tools.MethodConfirmSectorProofsValid:
 		return p.confirmSectorProofsValid(msg.Params)
-	case "ChangeMultiaddrs":
+	case tools.MethodChangeMultiaddrs:
 		return p.changeMultiaddrs(msg.Params)
-	case "CompactPartitions":
+	case tools.MethodCompactPartitions:
 		return p.compactPartitions(msg.Params)
-	case "CompactSectorNumbers":
+	case tools.MethodCompactSectorNumbers:
 		return p.compactSectorNumbers(msg.Params)
-	case "ConfirmUpdateWorkerKey":
-	case "RepayDebt":
-	case "ChangeOwnerAddress":
-	case "DisputeWindowedPoSt":
+	case tools.MethodConfirmUpdateWorkerKey:
+	case tools.MethodRepayDebt:
+	case tools.MethodChangeOwnerAddress:
+	case tools.MethodDisputeWindowedPoSt:
 		return p.disputeWindowedPoSt(msg.Params)
-	case "PreCommitSectorBatch":
+	case tools.MethodPreCommitSectorBatch:
 		return p.preCommitSectorBatch(msg.Params)
-	case "ProveCommitAggregate":
+	case tools.MethodProveCommitAggregate:
 		return p.proveCommitAggregate(msg.Params)
-	case "ProveReplicaUpdates":
+	case tools.MethodProveReplicaUpdates:
 		return p.proveReplicaUpdates(msg.Params)
-	case "ChangeBeneficiary":
+	case tools.MethodChangeBeneficiary:
 		return p.changeBeneficiary(msg.Params)
-	case "GetBeneficiary":
+	case tools.MethodGetBeneficiary:
 		return p.getBeneficiary(msg.Params, msgRct.Return)
 	}
 	return map[string]interface{}{}, errUnknownMethod

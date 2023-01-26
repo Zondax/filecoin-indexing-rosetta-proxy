@@ -9,20 +9,22 @@ import (
 
 func (p *Parser) parseVerifiedRegistry(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt) (map[string]interface{}, error) {
 	switch txType {
-	case "Send":
+	case tools.MethodSend:
 		return p.parseSend(msg), nil
-	case "Constructor":
-	case "AddVerifier":
+	case tools.MethodConstructor:
+	case tools.MethodAddVerifier:
 		return p.addVerifier(msg.Params)
-	case "RemoveVerifier":
-	case "AddVerifiedClient":
+	case tools.MethodRemoveVerifier:
+	case tools.MethodAddVerifiedClient:
 		return p.addVerifiedClient(msg.Params)
-	case "UseBytes":
+	case tools.MethodUseBytes:
 		return p.useBytes(msg.Params)
-	case "RestoreBytes":
+	case tools.MethodRestoreBytes:
 		return p.restoreBytes(msg.Params)
-	case "RemoveVerifiedClientDataCap":
-	case "RemoveExpiredAllocations":
+	case tools.MethodRemoveVerifiedClientDataCap:
+		// TODO: untested
+		return p.removeVerifiedClientDataCap(msg.Params)
+	case tools.MethodRemoveExpiredAllocations:
 		return p.removeExpiredAllocations(msg.Params, msgRct.Return)
 	}
 	return map[string]interface{}{}, errUnknownMethod
@@ -73,6 +75,19 @@ func (p *Parser) restoreBytes(raw []byte) (map[string]interface{}, error) {
 		return metadata, err
 	}
 	metadata[tools.ParamsKey] = params
+	return metadata, nil
+}
+
+// TODO: untested
+func (p *Parser) removeVerifiedClientDataCap(raw []byte) (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
+	reader := bytes.NewReader(raw)
+	var datacap verifreg.DataCap
+	err := datacap.UnmarshalCBOR(reader)
+	if err != nil {
+		return metadata, err
+	}
+	metadata[tools.ParamsKey] = datacap
 	return metadata, nil
 }
 

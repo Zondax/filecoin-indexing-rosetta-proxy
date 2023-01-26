@@ -12,11 +12,11 @@ import (
 func (p *Parser) parseInit(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64,
 	key filTypes.TipSetKey) (map[string]interface{}, error) {
 	switch txType {
-	case "Send":
+	case tools.MethodSend:
 		return p.parseSend(msg), nil
-	case "Constructor":
+	case tools.MethodConstructor:
 		return p.initConstructor(msg.Params)
-	case "Exec":
+	case tools.MethodExec:
 		return p.parseExec(msg, msgRct, height, key)
 	}
 	return map[string]interface{}{}, errUnknownMethod

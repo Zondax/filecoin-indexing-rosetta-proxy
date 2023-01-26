@@ -3,6 +3,7 @@ package parser
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/filecoin-project/go-state-types/manifest"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/ipfs/go-cid"
@@ -175,27 +176,27 @@ func (p *Parser) getMetadata(txType string, msg *filTypes.Message, mainMsgCid ci
 		return metadata, err
 	}
 	switch actor {
-	case "init":
+	case manifest.InitKey:
 		return p.parseInit(txType, msg, msgRct, height, key)
-	case "cron":
+	case manifest.CronKey:
 		return p.parseCron(txType, msg)
-	case "account":
+	case manifest.AccountKey:
 		return p.parseAccount(txType, msg)
-	case "storagepower":
+	case manifest.PowerKey:
 		return p.parseStoragepower(txType, msg, msgRct, height, key)
-	case "storageminer":
+	case manifest.MinerKey:
 		return p.parseStorageminer(txType, msg, msgRct)
-	case "storagemarket":
+	case manifest.MarketKey:
 		return p.parseStoragemarket(txType, msg, msgRct)
-	case "paymentchannel":
+	case manifest.PaychKey:
 		return p.parsePaymentchannel(txType, msg)
-	case "multisig":
+	case manifest.MultisigKey:
 		return p.parseMultisig(txType, msg, msgRct, height, key)
-	case "reward":
+	case manifest.RewardKey:
 		return p.parseReward(txType, msg, msgRct)
-	case "verifiedregistry":
+	case manifest.VerifregKey:
 		return p.parseVerifiedRegistry(txType, msg, msgRct)
-	case "evm":
+	case manifest.EvmKey:
 		return p.parseEvm(txType, msg, mainMsgCid, msgRct, ethLogs)
 	default:
 		return metadata, errNotValidActor

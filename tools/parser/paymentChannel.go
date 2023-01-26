@@ -9,14 +9,14 @@ import (
 
 func (p *Parser) parsePaymentchannel(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
 	switch txType {
-	case "Send":
+	case tools.MethodSend:
 		return p.parseSend(msg), nil
-	case "Constructor":
+	case tools.MethodConstructor:
 		return p.paymentChannelConstructor(msg.Params)
-	case "UpdateChannelState":
+	case tools.MethodUpdateChannelState:
 		return p.updateChannelState(msg.Params)
-	case "Settle":
-	case "Collect":
+	case tools.MethodSettle:
+	case tools.MethodCollect:
 	}
 	return map[string]interface{}{}, errUnknownMethod
 }

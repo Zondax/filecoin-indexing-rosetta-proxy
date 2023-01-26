@@ -13,22 +13,22 @@ import (
 func (p *Parser) parseStoragepower(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
 	height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
 	switch txType {
-	case "Send":
+	case tools.MethodSend:
 		return p.parseSend(msg), nil
-	case "Constructor":
+	case tools.MethodConstructor:
 		return p.powerConstructor(msg.Params)
-	case "CreateMiner":
+	case tools.MethodCreateMiner:
 		return p.parseCreateMiner(msg, msgRct, height, key)
-	case "UpdateClaimedPower":
+	case tools.MethodUpdateClaimedPower:
 		return p.updateClaimedPower(msg.Params)
-	case "EnrollCronEvent":
+	case tools.MethodEnrollCronEvent:
 		return p.enrollCronEvent(msg.Params)
-	case "CronTick":
-	case "UpdatePledgeTotal": // TODO
-	case "Deprecated1":
-	case "SubmitPoRepForBulkVerify":
+	case tools.MethodCronTick:
+	case tools.MethodUpdatePledgeTotal: // TODO
+	case tools.MethodDeprecated1:
+	case tools.MethodSubmitPoRepForBulkVerify:
 		return p.submitPoRepForBulkVerify(msg.Params)
-	case "CurrentTotalPower":
+	case tools.MethodCurrentTotalPower:
 		return p.currentTotalPower(msgRct.Return)
 
 	}

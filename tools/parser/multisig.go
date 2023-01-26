@@ -17,22 +17,24 @@ import (
 
 func (p *Parser) parseMultisig(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
 	switch txType {
-	case "Constructor":
-	case "Send":
+	case tools.MethodConstructor:
+	case tools.MethodSend:
 		return p.parseSend(msg), nil
-	case "Propose":
+	case tools.MethodPropose:
 		return p.propose(msg, msgRct)
-	case "Approve":
+	case tools.MethodApprove:
 		return p.approve(msg, msgRct, height, key)
-	case "Cancel":
+	case tools.MethodCancel:
 		return p.cancel(msg, height, key)
-	case "AddSigner", "SwapSigner":
+	case tools.MethodAddSigner, tools.MethodSwapSigner:
 		return p.msigParams(msg, height, key)
-	case "RemoveSigner":
+	case tools.MethodRemoveSigner:
 		return p.removeSigner(msg, height, key)
-	case "ChangeNumApprovalsThreshold":
-	case "AddVerifies":
-	case "LockBalance":
+	case tools.MethodChangeNumApprovalsThreshold:
+		return p.changeNumApprovalsThreshold(msg.Params)
+	case tools.MethodAddVerifies:
+	case tools.MethodLockBalance:
+		return p.lockBalance(msg.Params)
 	}
 	return map[string]interface{}{}, errUnknownMethod
 }
@@ -110,6 +112,30 @@ func (p *Parser) removeSigner(msg *filTypes.Message, height int64, key filTypes.
 	params, err := p.parseMsigParams(msg, height, key)
 	if err != nil {
 		return map[string]interface{}{}, err
+	}
+	metadata[tools.ParamsKey] = params
+	return metadata, nil
+}
+
+func (p *Parser) changeNumApprovalsThreshold(raw []byte) (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
+	var params multisig.ChangeNumApprovalsThresholdParams
+	reader := bytes.NewReader(raw)
+	err := params.UnmarshalCBOR(reader)
+	if err != nil {
+		return metadata, err
+	}
+	metadata[tools.ParamsKey] = params
+	return metadata, nil
+}
+
+func (p *Parser) lockBalance(raw []byte) (map[string]interface{}, error) {
+	metadata := make(map[string]interface{})
+	var params multisig.LockBalanceParams
+	reader := bytes.NewReader(raw)
+	err := params.UnmarshalCBOR(reader)
+	if err != nil {
+		return metadata, err
 	}
 	metadata[tools.ParamsKey] = params
 	return metadata, nil

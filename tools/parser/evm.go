@@ -12,9 +12,9 @@ import (
 func (p *Parser) parseEvm(txType string, msg *filTypes.Message, msgCid cid.Cid, msgRct *filTypes.MessageReceipt, ethLogs []EthLog) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
 	switch txType {
-	case "Constructor":
+	case tools.MethodConstructor:
 		return p.evmConstructor(msg.Params)
-	case "InvokeContract", "InvokeContractReadOnly", "InvokeContractDelegate":
+	case tools.MethodInvokeContract, tools.MethodInvokeContractReadOnly, tools.MethodInvokeContractDelegate:
 		metadata[tools.ParamsKey] = "0x" + hex.EncodeToString(msg.Params)
 		metadata[tools.ReturnKey] = "0x" + hex.EncodeToString(msgRct.Return)
 		logs, err := searchEthLogs(ethLogs, msgCid.String())
@@ -22,7 +22,7 @@ func (p *Parser) parseEvm(txType string, msg *filTypes.Message, msgCid cid.Cid, 
 			return metadata, err
 		}
 		metadata["ethLogs"] = logs
-	case "GetBytecode":
+	case tools.MethodGetBytecode:
 	}
 	return metadata, nil
 }

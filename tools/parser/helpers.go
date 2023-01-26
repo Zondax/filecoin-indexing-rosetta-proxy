@@ -8,6 +8,7 @@ import (
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/go-address"
 	methods "github.com/filecoin-project/go-state-types/builtin"
+	"github.com/filecoin-project/go-state-types/manifest"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	initActor "github.com/filecoin-project/specs-actors/actors/builtin/init"
 	"github.com/filecoin-project/specs-actors/actors/builtin/power"
@@ -71,43 +72,43 @@ func (p *Parser) getMethodName(msg *filTypes.Message, height int64, key filTypes
 
 	// Shortcut 1 - Method "0" corresponds to "MethodSend"
 	if msg.Method == 0 {
-		return "Send", nil
+		return tools.MethodSend, nil
 	}
 
 	// Shortcut 2 - Method "1" corresponds to "MethodConstructor"
 	if msg.Method == 1 {
-		return "Constructor", nil
+		return tools.MethodConstructor, nil
 	}
 
 	actorName := p.getActorNameFromAddress(msg.To, height, key)
 
 	var method interface{}
 	switch actorName {
-	case "init":
+	case manifest.InitKey:
 		method = methods.MethodsInit
-	case "cron":
+	case manifest.CronKey:
 		method = methods.MethodsCron
-	case "account":
+	case manifest.AccountKey:
 		method = methods.MethodsAccount
-	case "storagepower":
+	case manifest.PowerKey:
 		method = methods.MethodsPower
-	case "storageminer":
+	case manifest.MinerKey:
 		method = methods.MethodsMiner
-	case "storagemarket":
+	case manifest.MarketKey:
 		method = methods.MethodsMarket
-	case "paymentchannel":
+	case manifest.PaychKey:
 		method = methods.MethodsPaych
-	case "multisig":
+	case manifest.MultisigKey:
 		method = methods.MethodsMultisig
-	case "reward":
+	case manifest.RewardKey:
 		method = methods.MethodsReward
-	case "verifiedregistry":
+	case manifest.VerifregKey:
 		method = methods.MethodsVerifiedRegistry
-	case "evm":
+	case manifest.EvmKey:
 		method = methods.MethodsEVM
-	case "eam":
+	case manifest.EamKey:
 		method = methods.MethodsEAM
-	case "datacap":
+	case manifest.DatacapKey:
 		method = methods.MethodsDatacap
 	default:
 		return tools.UnknownStr, nil
@@ -222,7 +223,7 @@ func ParseProposeParams(msg *filTypes.Message, height int64, key filTypes.TipSet
 
 func (p *Parser) parseAccount(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
 	switch txType {
-	case "Send":
+	case tools.MethodSend:
 		return p.parseSend(msg), nil
 	case "PubkeyAddress":
 		metadata := make(map[string]interface{})

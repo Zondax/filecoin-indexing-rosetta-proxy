@@ -9,9 +9,9 @@ import (
 
 func (p *Parser) parseCron(txType string, msg *filTypes.Message) (map[string]interface{}, error) {
 	switch txType {
-	case "Constructor":
+	case tools.MethodConstructor:
 		return p.cronConstructor(msg.Params)
-	case "EpochTick":
+	case tools.MethodEpochTick:
 	}
 	return map[string]interface{}{}, errUnknownMethod
 }
