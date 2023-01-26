@@ -74,7 +74,7 @@ func (p *Parser) powerConstructor(raw []byte) (map[string]interface{}, error) {
 func (p *Parser) parseCreateMiner(msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
 	height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
-	createdActor, err := searchForActorCreation(msg, msgRct, height, key, p.lib)
+	createdActor, err := p.searchForActorCreation(msg, msgRct, height, key)
 	if err != nil {
 		return map[string]interface{}{}, err
 	}

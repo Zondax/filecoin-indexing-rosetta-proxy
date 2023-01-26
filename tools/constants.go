@@ -33,6 +33,8 @@ const (
 
 	ParamsKey = "Params"
 	ReturnKey = "Return"
+
+	UnknownStr = "unknown"
 )
 
 // SupportedOperations operations that will be parsed

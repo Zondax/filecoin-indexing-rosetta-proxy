@@ -78,7 +78,7 @@ func (p *Parser) parseSubTxs(subTxs []filTypes.ExecutionTrace, mainMsgCid cid.Ci
 
 func (p *Parser) parseTrace(trace filTypes.ExecutionTrace, msgCid cid.Cid, tipSet *filTypes.TipSet, ethLogs []EthLog, blockHash, txHash string,
 	key filTypes.TipSetKey) (*types.Transaction, error) {
-	txType, err := tools.GetMethodName(trace.Msg, int64(tipSet.Height()), key, p.lib)
+	txType, err := p.getMethodName(trace.Msg, int64(tipSet.Height()), key)
 	if err != nil {
 		zap.S().Errorf("Error when trying to get method name in tx cid'%s': %s", msgCid.String(), err.Message)
 		txType = tools.UnknownStr
@@ -238,8 +238,8 @@ func getCastedAmount(amount string) string {
 }
 
 func (p *Parser) appendAddressInfo(msg *filTypes.Message, height int64, key filTypes.TipSetKey) {
-	fromAdd := tools.GetActorAddressInfo(msg.From, height, key, p.lib)
-	toAdd := tools.GetActorAddressInfo(msg.To, height, key, p.lib)
+	fromAdd := p.getActorAddressInfo(msg.From, height, key)
+	toAdd := p.getActorAddressInfo(msg.To, height, key)
 	p.appendToAddresses(fromAdd, toAdd)
 }
 

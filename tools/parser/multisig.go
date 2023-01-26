@@ -3,12 +3,16 @@ package parser
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/filecoin-project/go-state-types/builtin"
 	"github.com/filecoin-project/go-state-types/builtin/v10/miner"
 	"github.com/filecoin-project/go-state-types/builtin/v10/multisig"
 	"github.com/filecoin-project/go-state-types/cbor"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
+	"github.com/zondax/rosetta-filecoin-lib/actors"
+	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 )
 
 func (p *Parser) parseMultisig(txType string, msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
@@ -23,7 +27,7 @@ func (p *Parser) parseMultisig(txType string, msg *filTypes.Message, msgRct *fil
 	case "Cancel":
 		return p.cancel(msg, height, key)
 	case "AddSigner", "SwapSigner":
-		return p.parseMsigParams(msg, height, key)
+		return p.msigParams(msg, height, key)
 	case "RemoveSigner":
 		return p.removeSigner(msg, height, key)
 	case "ChangeNumApprovalsThreshold":
@@ -33,8 +37,8 @@ func (p *Parser) parseMultisig(txType string, msg *filTypes.Message, msgRct *fil
 	return map[string]interface{}{}, errUnknownMethod
 }
 
-func (p *Parser) parseMsigParams(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
-	params, err := ParseMsigParams(msg, height, key, p.lib)
+func (p *Parser) msigParams(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
+	params, err := p.parseMsigParams(msg, height, key)
 	if err != nil {
 		return map[string]interface{}{}, err
 	}
@@ -76,7 +80,7 @@ func (p *Parser) propose(msg *filTypes.Message, msgRct *filTypes.MessageReceipt)
 
 func (p *Parser) approve(msg *filTypes.Message, msgRct *filTypes.MessageReceipt, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
-	params, err := ParseMsigParams(msg, height, key, p.lib)
+	params, err := p.parseMsigParams(msg, height, key)
 	if err != nil {
 		return map[string]interface{}{}, err
 	}
@@ -93,7 +97,7 @@ func (p *Parser) approve(msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
 
 func (p *Parser) cancel(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
-	params, err := ParseMsigParams(msg, height, key, p.lib)
+	params, err := p.parseMsigParams(msg, height, key)
 	if err != nil {
 		return map[string]interface{}{}, err
 	}
@@ -103,12 +107,37 @@ func (p *Parser) cancel(msg *filTypes.Message, height int64, key filTypes.TipSet
 
 func (p *Parser) removeSigner(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
-	params, err := ParseMsigParams(msg, height, key, p.lib)
+	params, err := p.parseMsigParams(msg, height, key)
 	if err != nil {
 		return map[string]interface{}{}, err
 	}
 	metadata[tools.ParamsKey] = params
 	return metadata, nil
+}
+
+func (p *Parser) parseMsigParams(msg *filTypes.Message, height int64, key filTypes.TipSetKey) (string, error) {
+	msgSerial, err := msg.MarshalJSON()
+	if err != nil {
+		rosetta.Logger.Error("Could not parse params. Cannot serialize lotus message:", err.Error())
+		return "", err
+	}
+
+	actorCode, err := database.ActorsDB.GetActorCode(msg.To, height, key)
+	if err != nil {
+		return "", err
+	}
+
+	if !p.lib.BuiltinActors.IsActor(actorCode, actors.ActorMultisigName) {
+		return "", fmt.Errorf("this id doesn't correspond to a multisig actor")
+	}
+
+	parsedParams, err := p.lib.ParseParamsMultisigTx(string(msgSerial), actorCode)
+	if err != nil {
+		rosetta.Logger.Error("Could not parse params. ParseParamsMultisigTx returned with error:", err.Error())
+		return "", err
+	}
+
+	return parsedParams, nil
 }
 
 func (p *Parser) innerProposeParams(propose multisig.ProposeParams) (cbor.Unmarshaler, error) {

@@ -12,7 +12,6 @@ import (
 	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
-	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 	"strconv"
 	"time"
@@ -122,11 +121,11 @@ func (t *TraceRetriever) GetEthLogs(ctx context.Context, node *api.FullNode, tip
 	return logs, nil
 }
 
-func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageReceipt,
-	height int64, key filTypes.TipSetKey, lib *rosettaFilecoinLib.RosettaConstructionFilecoin) (*types.AddressInfo, error) {
+func (p *Parser) searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageReceipt,
+	height int64, key filTypes.TipSetKey) (*types.AddressInfo, error) {
 
-	toAddressInfo := tools.GetActorAddressInfo(msg.To, height, key, lib)
-	actorName, err := lib.BuiltinActors.GetActorNameFromCid(toAddressInfo.ActorCid)
+	toAddressInfo := p.getActorAddressInfo(msg.To, height, key)
+	actorName, err := p.lib.BuiltinActors.GetActorNameFromCid(toAddressInfo.ActorCid)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +137,7 @@ func searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageRece
 			if err != nil {
 				return nil, err
 			}
-			createdActorName, err := lib.BuiltinActors.GetActorNameFromCid(params.CodeCID)
+			createdActorName, err := p.lib.BuiltinActors.GetActorNameFromCid(params.CodeCID)
 			if err != nil {
 				return nil, err
 			}

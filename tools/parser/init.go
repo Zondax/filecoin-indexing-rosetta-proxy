@@ -37,7 +37,7 @@ func (p *Parser) initConstructor(raw []byte) (map[string]interface{}, error) {
 func (p *Parser) parseExec(msg *filTypes.Message, msgRct *filTypes.MessageReceipt,
 	height int64, key filTypes.TipSetKey) (map[string]interface{}, error) {
 	// Check if this Exec contains actor creation event
-	createdActor, err := searchForActorCreation(msg, msgRct, height, key, p.lib)
+	createdActor, err := p.searchForActorCreation(msg, msgRct, height, key)
 	if err != nil {
 		return map[string]interface{}{}, err
 	}

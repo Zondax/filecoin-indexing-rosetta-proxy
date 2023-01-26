@@ -3,7 +3,7 @@ package parser
 import (
 	"bytes"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
-	"github.com/filecoin-project/specs-actors/v7/actors/builtin/cron"
+	"github.com/filecoin-project/specs-actors/v8/actors/builtin/cron"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 )
 
