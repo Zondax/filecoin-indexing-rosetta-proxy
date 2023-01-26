@@ -6,11 +6,15 @@ import (
 	"fmt"
 	ds "github.com/Zondax/zindexer/components/connections/data_store"
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
+	"github.com/filecoin-project/go-state-types/manifest"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
+	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	"github.com/ipfs/go-cid"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
+	"strconv"
 	"time"
 )
 
@@ -88,4 +92,88 @@ func (t *TraceRetriever) getStoredStateCompute(tipSet *filTypes.TipSet) (*Comput
 		Trace:        trace.Trace,
 		LotusVersion: trace.LotusVersion,
 	}, nil
+}
+
+func (t *TraceRetriever) GetEthLogs(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) ([]EthLog, *rosettaTypes.Error) {
+	fromBlockHex := strconv.FormatUint(uint64(tipSet.Height()), 16)
+	res, err := (*node).EthGetLogs(ctx, &ethtypes.EthFilterSpec{
+		FromBlock: &fromBlockHex,
+		ToBlock:   &fromBlockHex,
+	})
+
+	if err != nil {
+		return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, err, true)
+	}
+
+	if len(res.Results) == 0 {
+		return nil, nil
+	}
+
+	logs := make([]EthLog, 0, len(res.Results))
+	for _, result := range res.Results {
+		var log EthLog
+		log, ok := result.(EthLog)
+		if !ok {
+			return nil, rosetta.BuildError(rosetta.ErrMalformedValue, err, true)
+		}
+		logs = append(logs, log)
+	}
+
+	return logs, nil
+}
+
+func (p *Parser) searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageReceipt,
+	height int64, key filTypes.TipSetKey) (*types.AddressInfo, error) {
+
+	toAddressInfo := p.getActorAddressInfo(msg.To, height, key)
+	actorName, err := p.lib.BuiltinActors.GetActorNameFromCid(toAddressInfo.ActorCid)
+	if err != nil {
+		return nil, err
+	}
+
+	switch actorName {
+	case manifest.InitKey:
+		{
+			params, err := ParseInitActorExecParams(msg.Params)
+			if err != nil {
+				return nil, err
+			}
+			createdActorName, err := p.lib.BuiltinActors.GetActorNameFromCid(params.CodeCID)
+			if err != nil {
+				return nil, err
+			}
+			switch createdActorName {
+			case manifest.MultisigKey, manifest.PaychKey:
+				{
+					execReturn, err := ParseExecReturn(receipt.Return)
+					if err != nil {
+						return nil, err
+					}
+
+					return &types.AddressInfo{
+						Short:     execReturn.IDAddress.String(),
+						Robust:    execReturn.RobustAddress.String(),
+						ActorCid:  params.CodeCID,
+						ActorType: createdActorName,
+					}, nil
+				}
+			default:
+				return nil, nil
+			}
+		}
+	case manifest.PowerKey:
+		{
+			execReturn, err := ParseExecReturn(receipt.Return)
+			if err != nil {
+				return nil, err
+			}
+			return &types.AddressInfo{
+				Short:     execReturn.IDAddress.String(),
+				Robust:    execReturn.RobustAddress.String(),
+				ActorType: "miner",
+			}, nil
+		}
+	default:
+		return nil, nil
+	}
 }
