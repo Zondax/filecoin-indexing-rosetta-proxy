@@ -5,18 +5,18 @@ import (
 	"github.com/coinbase/rosetta-sdk-go/server"
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/lotus/api"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/parser"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 )
 
 type CallAPIService struct {
 	network        *rosettaTypes.NetworkIdentifier
 	node           api.FullNode
-	traceRetriever *parser.TraceRetriever
+	traceRetriever *tools.TraceRetriever
 }
 
 // NewCallAPIService creates a new instance of a CallAPIService.
-func NewCallAPIService(network *rosettaTypes.NetworkIdentifier, api *api.FullNode, retriever *parser.TraceRetriever) server.CallAPIServicer {
+func NewCallAPIService(network *rosettaTypes.NetworkIdentifier, api *api.FullNode, retriever *tools.TraceRetriever) server.CallAPIServicer {
 	return &CallAPIService{
 		network:        network,
 		node:           *api,

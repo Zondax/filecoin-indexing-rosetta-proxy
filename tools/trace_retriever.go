@@ -1,4 +1,4 @@
-package parser
+package tools
 
 import (
 	"context"
@@ -6,13 +6,11 @@ import (
 	"fmt"
 	ds "github.com/Zondax/zindexer/components/connections/data_store"
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
-	"github.com/filecoin-project/go-state-types/manifest"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	"github.com/filecoin-project/lotus/chain/types/ethtypes"
 	"github.com/ipfs/go-cid"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
+	parserTypes "github.com/zondax/fil-parser/types"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 	"strconv"
 	"time"
@@ -68,7 +66,7 @@ func (t *TraceRetriever) getLotusStateCompute(ctx context.Context, node *api.Ful
 	return &ComputeStateVersioned{
 		Root:         states.Root,
 		Trace:        states.Trace,
-		LotusVersion: tools.ConnectedToLotusVersion,
+		LotusVersion: ConnectedToLotusVersion,
 	}, nil
 }
 
@@ -94,7 +92,7 @@ func (t *TraceRetriever) getStoredStateCompute(tipSet *filTypes.TipSet) (*Comput
 	}, nil
 }
 
-func (t *TraceRetriever) GetEthLogs(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) ([]EthLog, *rosettaTypes.Error) {
+func (t *TraceRetriever) GetEthLogs(ctx context.Context, node *api.FullNode, tipSet *filTypes.TipSet) ([]parserTypes.EthLog, *rosettaTypes.Error) {
 	fromBlockHex := strconv.FormatUint(uint64(tipSet.Height()), 16)
 	res, err := (*node).EthGetLogs(ctx, &ethtypes.EthFilterSpec{
 		FromBlock: &fromBlockHex,
@@ -109,10 +107,10 @@ func (t *TraceRetriever) GetEthLogs(ctx context.Context, node *api.FullNode, tip
 		return nil, nil
 	}
 
-	logs := make([]EthLog, 0, len(res.Results))
+	logs := make([]parserTypes.EthLog, 0, len(res.Results))
 	for _, result := range res.Results {
-		var log EthLog
-		log, ok := result.(EthLog)
+		var log parserTypes.EthLog
+		log, ok := result.(parserTypes.EthLog)
 		if !ok {
 			return nil, rosetta.BuildError(rosetta.ErrMalformedValue, err, true)
 		}
@@ -120,60 +118,4 @@ func (t *TraceRetriever) GetEthLogs(ctx context.Context, node *api.FullNode, tip
 	}
 
 	return logs, nil
-}
-
-func (p *Parser) searchForActorCreation(msg *filTypes.Message, receipt *filTypes.MessageReceipt,
-	height int64, key filTypes.TipSetKey) (*types.AddressInfo, error) {
-
-	toAddressInfo := p.getActorAddressInfo(msg.To, height, key)
-	actorName, err := p.lib.BuiltinActors.GetActorNameFromCid(toAddressInfo.ActorCid)
-	if err != nil {
-		return nil, err
-	}
-
-	switch actorName {
-	case manifest.InitKey:
-		{
-			params, err := ParseInitActorExecParams(msg.Params)
-			if err != nil {
-				return nil, err
-			}
-			createdActorName, err := p.lib.BuiltinActors.GetActorNameFromCid(params.CodeCID)
-			if err != nil {
-				return nil, err
-			}
-			switch createdActorName {
-			case manifest.MultisigKey, manifest.PaychKey:
-				{
-					execReturn, err := ParseExecReturn(receipt.Return)
-					if err != nil {
-						return nil, err
-					}
-
-					return &types.AddressInfo{
-						Short:     execReturn.IDAddress.String(),
-						Robust:    execReturn.RobustAddress.String(),
-						ActorCid:  params.CodeCID,
-						ActorType: createdActorName,
-					}, nil
-				}
-			default:
-				return nil, nil
-			}
-		}
-	case manifest.PowerKey:
-		{
-			execReturn, err := ParseExecReturn(receipt.Return)
-			if err != nil {
-				return nil, err
-			}
-			return &types.AddressInfo{
-				Short:     execReturn.IDAddress.String(),
-				Robust:    execReturn.RobustAddress.String(),
-				ActorType: "miner",
-			}, nil
-		}
-	default:
-		return nil, nil
-	}
 }
