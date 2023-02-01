@@ -12,7 +12,7 @@ require (
 	github.com/ipfs/go-cid v0.3.2
 	github.com/ipfs/go-log v1.0.5
 	github.com/spf13/viper v1.7.1
-	github.com/zondax/fil-parser v0.0.1
+	github.com/zondax/fil-parser v0.0.2
 	github.com/zondax/rosetta-filecoin-lib v1.1901.0-dev
 	github.com/zondax/rosetta-filecoin-proxy v1.1800.0
 )
