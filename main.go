@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"github.com/Zondax/zindexer/components/connections/data_store"
 	"github.com/spf13/viper"
+	"github.com/zondax/fil-parser/database"
+	filparser "github.com/zondax/fil-parser/parser"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/services"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/services/call"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/database"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/parser"
 	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	"net/http"
 	"os"
@@ -64,7 +64,7 @@ func newBlockchainRouter(
 	network *types.NetworkIdentifier,
 	asserter *rosettaAsserter.Asserter,
 	api api.FullNode,
-	traceRetriever *parser.TraceRetriever,
+	traceRetriever *tools.TraceRetriever,
 	rosettaLib *rosettaFilecoinLib.RosettaConstructionFilecoin,
 ) http.Handler {
 	accountAPIService := rosetta.NewAccountAPIService(network, &api, rosettaLib)
@@ -73,7 +73,7 @@ func newBlockchainRouter(
 		asserter,
 	)
 
-	networkAPIService := rosetta.NewNetworkAPIService(network, &api, tools.GetSupportedOps())
+	networkAPIService := rosetta.NewNetworkAPIService(network, &api, filparser.GetSupportedOps())
 	networkAPIController := server.NewNetworkAPIController(
 		networkAPIService,
 		asserter,
@@ -132,7 +132,7 @@ func startRosettaRPC(ctx context.Context, api api.FullNode) error {
 	r := rosettaFilecoinLib.NewRosettaConstructionFilecoin(api)
 
 	// Build trace retriever
-	retriever := parser.NewTraceRetriever(
+	retriever := tools.NewTraceRetriever(
 		viper.GetBool("use_cached_traces"),
 		viper.GetString("trace_bucket"),
 		data_store.DataStoreConfig{

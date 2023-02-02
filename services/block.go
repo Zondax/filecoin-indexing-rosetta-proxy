@@ -7,8 +7,10 @@ import (
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools/parser"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/types"
+	filparser "github.com/zondax/fil-parser/parser"
+	parserTypes "github.com/zondax/fil-parser/types"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
+
 	filLib "github.com/zondax/rosetta-filecoin-lib"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 	rosettaTools "github.com/zondax/rosetta-filecoin-proxy/rosetta/tools"
@@ -32,20 +34,20 @@ const (
 type BlockAPIService struct {
 	network        *rosettaTypes.NetworkIdentifier
 	node           api.FullNode
-	traceRetriever *parser.TraceRetriever
+	traceRetriever *tools.TraceRetriever
 	rosettaLib     *filLib.RosettaConstructionFilecoin
-	p              *parser.Parser
+	p              *filparser.Parser
 }
 
 // NewBlockAPIService creates a new instance of a BlockAPIService.
 func NewBlockAPIService(network *rosettaTypes.NetworkIdentifier, api *api.FullNode,
-	retriever *parser.TraceRetriever, r *filLib.RosettaConstructionFilecoin) server.BlockAPIServicer {
+	retriever *tools.TraceRetriever, r *filLib.RosettaConstructionFilecoin) server.BlockAPIServicer {
 	return &BlockAPIService{
 		network:        network,
 		node:           *api,
 		traceRetriever: retriever,
 		rosettaLib:     r,
-		p:              parser.NewParser(r),
+		p:              filparser.NewParser(r),
 	}
 }
 
@@ -144,9 +146,9 @@ func (s *BlockAPIService) Block(
 
 	// Build transactions data
 	var (
-		parsedTraces        []*types.Transaction
+		parsedTraces        []*parserTypes.Transaction
 		transactions        []*rosettaTypes.Transaction
-		discoveredAddresses *types.AddressInfoMap
+		discoveredAddresses *parserTypes.AddressInfoMap
 		parseError          error
 	)
 
