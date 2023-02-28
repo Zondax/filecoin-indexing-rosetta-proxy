@@ -8,6 +8,7 @@ import (
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	filparser "github.com/zondax/fil-parser/parser"
+	tools2 "github.com/zondax/fil-parser/tools"
 	parserTypes "github.com/zondax/fil-parser/types"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 
@@ -167,7 +168,7 @@ func (s *BlockAPIService) Block(
 		if parseError != nil {
 			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, parseError, true)
 		}
-		transactions = s.p.ToRosetta(parsedTraces)
+		transactions = tools.ToRosetta(parsedTraces)
 	}
 
 	// Add block metadata
@@ -181,7 +182,7 @@ func (s *BlockAPIService) Block(
 		md[DiscoveredAddressesKey] = *discoveredAddresses
 	}
 
-	hashTipSet, err := rosetta.BuildTipSetKeyHash(tipSet.Key())
+	hashTipSet, err := tools2.BuildTipSetKeyHash(tipSet.Key())
 	if err != nil {
 		return nil, rosetta.BuildError(rosetta.ErrUnableToBuildTipSetHash, nil, true)
 	}
