@@ -168,18 +168,18 @@ func (s *BlockAPIService) Block(
 		// }
 		tracesBytes, marshalErr := json.Marshal(states.Trace)
 		if marshalErr != nil {
-			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, parseError, true) //TODO: Set this error correctly
+			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, marshalErr, true)
 		}
 
 		extendedTipset := &parserTypes.ExtendedTipSet{}
 		tipsetBytes, marshalErr := json.Marshal(tipSet)
 		if marshalErr != nil {
-			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, parseError, true) //TODO: Set this error correctly
+			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTipset, marshalErr, true)
 		}
 
 		unmarshalErr := extendedTipset.UnmarshalJSON(tipsetBytes)
 		if unmarshalErr != nil {
-			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, parseError, true) //TODO: Set this error correctly
+			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTipset, unmarshalErr, true)
 		}
 
 		parsedTraces, discoveredAddresses, parseError = s.p.ParseTransactions(tracesBytes, extendedTipset, nil, nil) // TODO: fill with ethLogs
