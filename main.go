@@ -147,7 +147,7 @@ func startRosettaRPC(ctx context.Context, api api.FullNode) error {
 	router := newBlockchainRouter(network, asserter, api, retriever, r)
 	loggedRouter := server.LoggerMiddleware(router)
 	corsRouter := server.CorsMiddleware(loggedRouter)
-	server := &http.Server{Addr: fmt.Sprintf(":%d", ServerPort), Handler: corsRouter}
+	server := &http.Server{Addr: fmt.Sprintf(":%d", ServerPort), Handler: corsRouter} //nolint
 
 	sigCh := make(chan os.Signal, 2)
 
