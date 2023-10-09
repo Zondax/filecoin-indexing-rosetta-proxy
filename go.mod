@@ -13,8 +13,8 @@ require (
 	github.com/ipfs/go-log v1.0.5
 	github.com/spf13/viper v1.15.0
 	github.com/zondax/fil-parser v1.2302.14
-	github.com/zondax/rosetta-filecoin-lib v1.2400.0-rc1
-	github.com/zondax/rosetta-filecoin-proxy v1.2400.0-rc1
+	github.com/zondax/rosetta-filecoin-lib v1.2304.0-rc2
+	github.com/zondax/rosetta-filecoin-proxy v1.2304.0-rc2
 )
 
 replace github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
