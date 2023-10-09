@@ -197,7 +197,7 @@ func (s *BlockAPIService) Block(
 	}
 	md[BlockCIDsKey] = blockCIDs
 	if discoveredAddresses != nil {
-		md[DiscoveredAddressesKey] = DeepCopyAddressInfoMap(discoveredAddresses)
+		md[DiscoveredAddressesKey] = discoveredAddresses.Copy()
 	}
 
 	hashTipSet, err := rosetta.BuildTipSetKeyHash(tipSet.Key())
@@ -240,9 +240,4 @@ func (s *BlockAPIService) BlockTransaction(
 	request *rosettaTypes.BlockTransactionRequest,
 ) (*rosettaTypes.BlockTransactionResponse, *rosettaTypes.Error) {
 	return nil, rosetta.ErrNotImplemented
-}
-
-func DeepCopyAddressInfoMap(_ *parserTypes.AddressInfoMap) map[string]*parserTypes.AddressInfoMap {
-	result := make(map[string]*parserTypes.AddressInfoMap)
-	return result //TODO: Implement me
 }
