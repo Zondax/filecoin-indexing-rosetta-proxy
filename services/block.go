@@ -12,7 +12,6 @@ import (
 	"github.com/zondax/fil-parser/actors/cache/impl/common"
 	parserTypes "github.com/zondax/fil-parser/types"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
-
 	filLib "github.com/zondax/rosetta-filecoin-lib"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 	rosettaTools "github.com/zondax/rosetta-filecoin-proxy/rosetta/tools"
