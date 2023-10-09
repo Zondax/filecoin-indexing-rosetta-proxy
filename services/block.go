@@ -2,13 +2,14 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/coinbase/rosetta-sdk-go/server"
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/api"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
-	filparser "github.com/zondax/fil-parser/parser"
-	tools2 "github.com/zondax/fil-parser/tools"
+	filparser "github.com/zondax/fil-parser"
+	"github.com/zondax/fil-parser/actors/cache/impl/common"
 	parserTypes "github.com/zondax/fil-parser/types"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
 
@@ -37,18 +38,19 @@ type BlockAPIService struct {
 	node           api.FullNode
 	traceRetriever *tools.TraceRetriever
 	rosettaLib     *filLib.RosettaConstructionFilecoin
-	p              *filparser.Parser
+	p              *filparser.FilecoinParser
 }
 
 // NewBlockAPIService creates a new instance of a BlockAPIService.
 func NewBlockAPIService(network *rosettaTypes.NetworkIdentifier, api *api.FullNode,
 	retriever *tools.TraceRetriever, r *filLib.RosettaConstructionFilecoin) server.BlockAPIServicer {
+	parser, _ := filparser.NewFilecoinParser(r, common.DataSource{}, nil) //TODO: Check this error
 	return &BlockAPIService{
 		network:        network,
 		node:           *api,
 		traceRetriever: retriever,
 		rosettaLib:     r,
-		p:              filparser.NewParser(r),
+		p:              parser,
 	}
 }
 
@@ -164,7 +166,23 @@ func (s *BlockAPIService) Block(
 		// if err != nil {
 		//	 return nil, err
 		// }
-		parsedTraces, discoveredAddresses, parseError = s.p.ParseTransactions(states.Trace, tipSet, nil) // TODO: fill with ethLogs
+		tracesBytes, marshalErr := json.Marshal(states.Trace)
+		if marshalErr != nil {
+			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, parseError, true) //TODO: Set this error correctly
+		}
+
+		extendedTipset := &parserTypes.ExtendedTipSet{}
+		tipsetBytes, marshalErr := json.Marshal(tipSet)
+		if marshalErr != nil {
+			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, parseError, true) //TODO: Set this error correctly
+		}
+
+		unmarshalErr := extendedTipset.UnmarshalJSON(tipsetBytes)
+		if unmarshalErr != nil {
+			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, parseError, true) //TODO: Set this error correctly
+		}
+
+		parsedTraces, discoveredAddresses, parseError = s.p.ParseTransactions(tracesBytes, extendedTipset, nil, nil) // TODO: fill with ethLogs
 		if parseError != nil {
 			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, parseError, true)
 		}
@@ -179,10 +197,10 @@ func (s *BlockAPIService) Block(
 	}
 	md[BlockCIDsKey] = blockCIDs
 	if discoveredAddresses != nil {
-		md[DiscoveredAddressesKey] = *discoveredAddresses
+		md[DiscoveredAddressesKey] = DeepCopyAddressInfoMap(discoveredAddresses)
 	}
 
-	hashTipSet, err := tools2.BuildTipSetKeyHash(tipSet.Key())
+	hashTipSet, err := rosetta.BuildTipSetKeyHash(tipSet.Key())
 	if err != nil {
 		return nil, rosetta.BuildError(rosetta.ErrUnableToBuildTipSetHash, nil, true)
 	}
@@ -222,4 +240,9 @@ func (s *BlockAPIService) BlockTransaction(
 	request *rosettaTypes.BlockTransactionRequest,
 ) (*rosettaTypes.BlockTransactionResponse, *rosettaTypes.Error) {
 	return nil, rosetta.ErrNotImplemented
+}
+
+func DeepCopyAddressInfoMap(_ *parserTypes.AddressInfoMap) map[string]*parserTypes.AddressInfoMap {
+	result := make(map[string]*parserTypes.AddressInfoMap)
+	return result //TODO: Implement me
 }
