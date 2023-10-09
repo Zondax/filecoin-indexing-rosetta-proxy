@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/Zondax/zindexer/components/connections/data_store"
 	"github.com/spf13/viper"
-	"github.com/zondax/fil-parser/database"
+	"github.com/zondax/fil-parser/actors/cache"
+	"github.com/zondax/fil-parser/actors/cache/impl/common"
 	filparser "github.com/zondax/fil-parser/parser"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/services"
 	"github.com/zondax/filecoin-indexing-rosetta-proxy/services/call"
@@ -146,7 +147,7 @@ func startRosettaRPC(ctx context.Context, api api.FullNode) error {
 	router := newBlockchainRouter(network, asserter, api, retriever, r)
 	loggedRouter := server.LoggerMiddleware(router)
 	corsRouter := server.CorsMiddleware(loggedRouter)
-	server := &http.Server{Addr: fmt.Sprintf(":%d", ServerPort), Handler: corsRouter}
+	server := &http.Server{Addr: fmt.Sprintf(":%d", ServerPort), Handler: corsRouter} //nolint
 
 	sigCh := make(chan os.Signal, 2)
 
@@ -228,7 +229,7 @@ func main() {
 	}
 	defer clientCloser()
 
-	database.SetupActorsDatabase(&lotusAPI)
+	_, _ = cache.SetupActorsCache(common.DataSource{Node: lotusAPI}, nil)
 
 	ctx := context.Background()
 	err = startRosettaRPC(ctx, lotusAPI)

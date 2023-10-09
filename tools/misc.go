@@ -9,9 +9,9 @@ import (
 func ToRosetta(transactions []*types.Transaction) []*rosettaTypes.Transaction {
 	var result []*rosettaTypes.Transaction
 	var operations []*rosettaTypes.Operation
-	lastHash := transactions[0].TxHash
+	lastHash := transactions[0].TxCid
 	for _, t := range transactions {
-		if t.TxHash != lastHash {
+		if t.TxCid != lastHash {
 			result = append(result, &rosettaTypes.Transaction{
 				TransactionIdentifier: &rosettaTypes.TransactionIdentifier{
 					Hash: lastHash,
@@ -19,7 +19,7 @@ func ToRosetta(transactions []*types.Transaction) []*rosettaTypes.Transaction {
 				Operations: operations,
 			})
 			operations = nil
-			lastHash = t.TxHash
+			lastHash = t.TxCid
 		}
 		operations = append(operations, operationFromTransaction(t))
 	}
@@ -37,7 +37,7 @@ func operationFromTransaction(transaction *types.Transaction) *rosettaTypes.Oper
 			Address: transaction.TxFrom,
 		},
 		Amount: &rosettaTypes.Amount{
-			Value:    transaction.Amount,
+			Value:    transaction.Amount.String(),
 			Currency: rosetta.GetCurrencyData(),
 		},
 	}
