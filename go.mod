@@ -7,14 +7,14 @@ require (
 	github.com/coinbase/rosetta-sdk-go v0.7.10
 	github.com/filecoin-project/go-address v1.1.0
 	github.com/filecoin-project/go-jsonrpc v0.3.1
-	github.com/filecoin-project/go-state-types v0.12.1
-	github.com/filecoin-project/lotus v1.23.3
+	github.com/filecoin-project/go-state-types v0.12.4
+	github.com/filecoin-project/lotus v1.24.0-rc1
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-log v1.0.5
 	github.com/spf13/viper v1.15.0
 	github.com/zondax/fil-parser v1.2302.14
-	github.com/zondax/rosetta-filecoin-lib v1.2303.0
-	github.com/zondax/rosetta-filecoin-proxy v1.2303.0
+	github.com/zondax/rosetta-filecoin-lib v1.2400.0-rc1
+	github.com/zondax/rosetta-filecoin-proxy v1.2400.0-rc1
 )
 
 replace github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
@@ -161,7 +161,7 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.1 // indirect
 	github.com/whyrusleeping/bencher v0.0.0-20190829221104-bb6607aa8bba // indirect
-	github.com/whyrusleeping/cbor-gen v0.0.0-20230126041949-52956bd4c9aa // indirect
+	github.com/whyrusleeping/cbor-gen v0.0.0-20230923211252-36a87e1ba72f // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/zondax/znats v0.0.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
