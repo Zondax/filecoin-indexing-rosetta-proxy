@@ -55,6 +55,10 @@ const DestinationActorIdKey = "destinationActorId"
 // ConstructionMetadataRequest that specifies the tokens quantity to be sent
 const OptionsValueKey = "value"
 
+// MethodNumKey is the name of the key in the Options map inside a
+// ConstructionMetadataRequest that specifies the method num
+const OptionsMethodNumKey = "methodNum"
+
 // ConstructionAPIService implements the server.ConstructionAPIServicer interface.
 type ConstructionAPIService struct {
 	network *types.NetworkIdentifier
@@ -99,6 +103,12 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 		blockIncl, ok := request.Options[OptionsBlockInclKey]
 		if ok {
 			blockInclUint = uint64(blockIncl.(float64))
+		}
+
+		// Parse method num - this field is optional
+		methodNum, ok := request.Options[OptionsMethodNumKey]
+		if ok {
+			message.Method = methodNum.(abi.MethodNum)
 		}
 
 		// Parse sender address - this field is optional
