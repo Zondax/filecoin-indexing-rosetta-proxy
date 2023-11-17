@@ -16,7 +16,7 @@ import (
 )
 
 const ServerURL = "http://localhost:8081"
-
+const SenderAddress = "f1abjxfbp274xpdqcpuaykwkfb43omjotacm2p3za"
 const NetworkName = "mainnet"
 
 var (
@@ -99,7 +99,7 @@ func TestConstructionMetadata(t *testing.T) {
 	rosettaClient := setupRosettaClient()
 
 	var options = make(map[string]interface{})
-	options[services.OptionsSenderIDKey] = "f1abjxfbp274xpdqcpuaykwkfb43omjotacm2p3za"
+	options[services.OptionsSenderIDKey] = SenderAddress
 	options[services.OptionsReceiverIDKey] = "t137sjdbgunloi7couiy4l5nc7pd6k2jmq32vizpy"
 	options[services.OptionsBlockInclKey] = 1
 	options[services.OptionsValueKey] = "5"
@@ -134,7 +134,7 @@ func TestConstructionMetadataInvokeEVMMethod(t *testing.T) {
 	rosettaClient := setupRosettaClient()
 
 	var options = make(map[string]interface{})
-	options[services.OptionsSenderIDKey] = "f1abjxfbp274xpdqcpuaykwkfb43omjotacm2p3za"
+	options[services.OptionsSenderIDKey] = SenderAddress
 	options[services.OptionsReceiverIDKey] = "t137sjdbgunloi7couiy4l5nc7pd6k2jmq32vizpy"
 	options[services.OptionsBlockInclKey] = 1
 	options[services.OptionsValueKey] = "5"
@@ -170,7 +170,7 @@ func TestConstructionMetadataNonexistentReceiverActor(t *testing.T) {
 	rosettaClient := setupRosettaClient()
 
 	var options = make(map[string]interface{})
-	options[services.OptionsSenderIDKey] = "f1abjxfbp274xpdqcpuaykwkfb43omjotacm2p3za"
+	options[services.OptionsSenderIDKey] = SenderAddress
 	options[services.OptionsReceiverIDKey] = "f1pfmrkoipk2byrdz33usb3m25s56kyrvhchypfai" // This address doesn't exist on chain
 	options[services.OptionsBlockInclKey] = 1
 	options[services.OptionsValueKey] = "5"
