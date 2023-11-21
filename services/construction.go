@@ -2,10 +2,9 @@ package services
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"github.com/coinbase/rosetta-sdk-go/server"
-	"github.com/filecoin-project/lotus/build"
-
 	"github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-state-types/abi"
@@ -55,10 +54,24 @@ const DestinationActorIdKey = "destinationActorId"
 // ConstructionMetadataRequest that specifies the tokens quantity to be sent
 const OptionsValueKey = "value"
 
+// OptionsMethodNumKey is the name of the key in the Options map inside a
+// ConstructionMetadataRequest that specifies the method num
+const OptionsMethodNumKey = "methodNum"
+
+// OptionsParamsKey is the name of the key in the Options map inside a
+// ConstructionMetadataRequest that specifies the params
+const OptionsParamsKey = "params"
+
 // ConstructionAPIService implements the server.ConstructionAPIServicer interface.
 type ConstructionAPIService struct {
 	network *types.NetworkIdentifier
 	node    api.FullNode
+}
+
+var ErrMalformedParams = &types.Error{
+	Code:      1000,
+	Message:   "malformed params",
+	Retriable: false,
 }
 
 // NewConstructionAPIService creates a new instance of an ConstructionAPIService.
@@ -99,6 +112,23 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 		blockIncl, ok := request.Options[OptionsBlockInclKey]
 		if ok {
 			blockInclUint = uint64(blockIncl.(float64))
+		}
+
+		// Parse method num - this field is optional
+		methodNum, ok := request.Options[OptionsMethodNumKey]
+		if ok {
+			message.Method = abi.MethodNum(uint64(methodNum.(float64)))
+		}
+
+		// Parse params - this field is optional
+		params, ok := request.Options[OptionsParamsKey]
+		if ok {
+			paramsByte, err := base64.StdEncoding.DecodeString(params.(string))
+			if err != nil {
+				return nil, rosetta.BuildError(ErrMalformedParams, err, false)
+			}
+
+			message.Params = paramsByte
 		}
 
 		// Parse sender address - this field is optional
@@ -147,12 +177,12 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 			}
 			md[NonceKey] = nonce
 
-			// GasEstimateMessageGas to get a safely overestimated value for gas limit
-			message, err = c.node.GasEstimateMessageGas(ctx, message,
-				&api.MessageSendSpec{MaxFee: filTypes.NewInt(uint64(build.BlockGasLimit))}, filTypes.TipSetKey{})
+			// GasEstimateGasLimit
+			gasLimit, err := c.node.GasEstimateGasLimit(ctx, message, filTypes.TipSetKey{})
 			if err != nil {
 				return nil, rosetta.BuildError(rosetta.ErrUnableToEstimateGasLimit, err, true)
 			}
+			message.GasLimit = gasLimit
 
 			// GasEstimateGasPremium
 			gasPremium, gasErr := c.node.GasEstimateGasPremium(ctx, blockInclUint, addressSenderParsed, message.GasLimit, filTypes.TipSetKey{})

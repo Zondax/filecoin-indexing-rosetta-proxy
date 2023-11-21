@@ -3,6 +3,8 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/filecoin-project/go-state-types/builtin"
+	services2 "github.com/zondax/filecoin-indexing-rosetta-proxy/services"
 	"net/http"
 	"reflect"
 	"testing"
@@ -14,7 +16,7 @@ import (
 )
 
 const ServerURL = "http://localhost:8081"
-
+const SenderAddress = "f1abjxfbp274xpdqcpuaykwkfb43omjotacm2p3za"
 const NetworkName = "mainnet"
 
 var (
@@ -97,10 +99,46 @@ func TestConstructionMetadata(t *testing.T) {
 	rosettaClient := setupRosettaClient()
 
 	var options = make(map[string]interface{})
-	options[services.OptionsSenderIDKey] = "f1abjxfbp274xpdqcpuaykwkfb43omjotacm2p3za"
+	options[services.OptionsSenderIDKey] = SenderAddress
 	options[services.OptionsReceiverIDKey] = "t137sjdbgunloi7couiy4l5nc7pd6k2jmq32vizpy"
 	options[services.OptionsBlockInclKey] = 1
 	options[services.OptionsValueKey] = "5"
+
+	request := &types.ConstructionMetadataRequest{
+		NetworkIdentifier: NetworkID,
+		Options:           options,
+	}
+
+	resp, err1, err2 := rosettaClient.ConstructionAPI.ConstructionMetadata(ctx, request)
+	if err1 != nil {
+		t.Fatal(err1.Message)
+	}
+
+	if err2 != nil {
+		t.Fatal(err2.Error())
+	}
+
+	if resp == nil {
+		t.Fatal()
+	}
+
+	fmt.Println("gasPremium", resp.Metadata[services.GasPremiumKey])
+	fmt.Println("gasLimit", resp.Metadata[services.GasLimitKey])
+	fmt.Println("gasFeeCap", resp.Metadata[services.GasFeeCapKey])
+	fmt.Println("nonce", resp.Metadata[services.NonceKey])
+	fmt.Println("Receivers actor id", resp.Metadata[services.DestinationActorIdKey])
+}
+
+func TestConstructionMetadataInvokeEVMMethod(t *testing.T) {
+
+	rosettaClient := setupRosettaClient()
+
+	var options = make(map[string]interface{})
+	options[services.OptionsSenderIDKey] = SenderAddress
+	options[services.OptionsReceiverIDKey] = "t137sjdbgunloi7couiy4l5nc7pd6k2jmq32vizpy"
+	options[services.OptionsBlockInclKey] = 1
+	options[services.OptionsValueKey] = "5"
+	options[services2.OptionsMethodNumKey] = builtin.MustGenerateFRCMethodNum("InvokeEVM")
 
 	request := &types.ConstructionMetadataRequest{
 		NetworkIdentifier: NetworkID,
@@ -132,7 +170,7 @@ func TestConstructionMetadataNonexistentReceiverActor(t *testing.T) {
 	rosettaClient := setupRosettaClient()
 
 	var options = make(map[string]interface{})
-	options[services.OptionsSenderIDKey] = "f1abjxfbp274xpdqcpuaykwkfb43omjotacm2p3za"
+	options[services.OptionsSenderIDKey] = SenderAddress
 	options[services.OptionsReceiverIDKey] = "f1pfmrkoipk2byrdz33usb3m25s56kyrvhchypfai" // This address doesn't exist on chain
 	options[services.OptionsBlockInclKey] = 1
 	options[services.OptionsValueKey] = "5"
