@@ -881,8 +881,8 @@ github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9de
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-github.com/zondax/fil-parser v1.2302.14 h1:BuNIA+i8rXYJYd9Vq0zuZ3yGm6RHIlBkUxzGwcWQbZo=
-github.com/zondax/fil-parser v1.2302.14/go.mod h1:Z/iq0o67FkiZvRJ2/cyyUxijgPpxplUeKrj7ZS35DFo=
+github.com/zondax/fil-parser v1.2302.15 h1:dj4TcKDr1PEEpKrBdhSyLwJtf10fs0uIpZuvzfYgSAc=
+github.com/zondax/fil-parser v1.2302.15/go.mod h1:FZ50q45p2pMG2SA1s3OInLVGVgNa9lnA9Duwx/c2dlM=
 github.com/zondax/rosetta-filecoin-lib v1.2400.0-rc6 h1:H+6MBceQx7oan1GpuLQSm2NBZGEFdmf289udt5CjGWI=
 github.com/zondax/rosetta-filecoin-lib v1.2400.0-rc6/go.mod h1:a9B3k2bV4Vo9mg2OUQPbIS29MlzijwrazFsMoKDgIvQ=
 github.com/zondax/rosetta-filecoin-proxy v1.2400.0-rc6 h1:Bzjs/JLRY22Vr0gcL8O3M6z/kz41cq51vT7cgYM2Wcg=
