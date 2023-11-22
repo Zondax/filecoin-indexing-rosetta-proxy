@@ -9,6 +9,7 @@ import (
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/lotus/api"
+	"github.com/filecoin-project/lotus/build"
 	filTypes "github.com/filecoin-project/lotus/chain/types"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 )
@@ -177,12 +178,11 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 			}
 			md[NonceKey] = nonce
 
-			// GasEstimateGasLimit
-			gasLimit, err := c.node.GasEstimateGasLimit(ctx, message, filTypes.TipSetKey{})
+			// GasEstimateMessageGas
+			message, err = c.node.GasEstimateMessageGas(ctx, message, &api.MessageSendSpec{MaxFee: filTypes.NewInt(uint64(build.BlockGasLimit))}, filTypes.TipSetKey{})
 			if err != nil {
 				return nil, rosetta.BuildError(rosetta.ErrUnableToEstimateGasLimit, err, true)
 			}
-			message.GasLimit = gasLimit
 
 			// GasEstimateGasPremium
 			gasPremium, gasErr := c.node.GasEstimateGasPremium(ctx, blockInclUint, addressSenderParsed, message.GasLimit, filTypes.TipSetKey{})
@@ -197,7 +197,6 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 				return nil, rosetta.BuildError(rosetta.ErrUnableToEstimateGasFeeCap, gasErr, true)
 			}
 			message.GasFeeCap = gasFeeCap
-
 		} else {
 			// We can only estimate gas premium without a sender address
 			gasPremium, gasErr := c.node.GasEstimateGasPremium(ctx, blockInclUint, address.Address{}, message.GasLimit, filTypes.TipSetKey{})
