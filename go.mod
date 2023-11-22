@@ -7,14 +7,14 @@ require (
 	github.com/coinbase/rosetta-sdk-go v0.7.10
 	github.com/filecoin-project/go-address v1.1.0
 	github.com/filecoin-project/go-jsonrpc v0.3.1
-	github.com/filecoin-project/go-state-types v0.12.5
-	github.com/filecoin-project/lotus v1.24.0-rc6
+	github.com/filecoin-project/go-state-types v0.12.8
+	github.com/filecoin-project/lotus v1.24.0
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-log v1.0.5
 	github.com/spf13/viper v1.17.0
 	github.com/zondax/fil-parser v1.2302.15
-	github.com/zondax/rosetta-filecoin-lib v1.2400.0-rc6
-	github.com/zondax/rosetta-filecoin-proxy v1.2400.0-rc6
+	github.com/zondax/rosetta-filecoin-lib v1.2400.0
+	github.com/zondax/rosetta-filecoin-proxy v1.2400.0
 )
 
 replace github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
