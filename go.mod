@@ -12,7 +12,7 @@ require (
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-log v1.0.5
 	github.com/spf13/viper v1.17.0
-	github.com/zondax/fil-parser v1.2302.15
+	github.com/zondax/fil-parser v1.2400.2
 	github.com/zondax/rosetta-filecoin-lib v1.2400.0
 	github.com/zondax/rosetta-filecoin-proxy v1.2400.0
 )
@@ -28,8 +28,9 @@ require (
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/akavel/rsrc v0.8.0 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
-	github.com/bytedance/sonic v1.8.7 // indirect
-	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
+	github.com/bytedance/sonic v1.10.2 // indirect
+	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
+	github.com/chenzhuoyu/iasm v0.9.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/crackcomm/go-gitignore v0.0.0-20170627025303-887ab5e44cc3 // indirect
 	github.com/daaku/go.zipexe v1.0.2 // indirect
@@ -65,7 +66,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.4.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hannahhoward/cbor-gen-for v0.0.0-20230214144701-5d17c9d5243c // indirect
@@ -76,7 +77,7 @@ require (
 	github.com/icza/backscanner v0.0.0-20210726202459-ac2ffc679f94 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/boxo v0.10.1 // indirect
-	github.com/ipfs/go-block-format v0.1.2 // indirect
+	github.com/ipfs/go-block-format v0.2.0 // indirect
 	github.com/ipfs/go-blockservice v0.5.1 // indirect
 	github.com/ipfs/go-datastore v0.6.0 // indirect
 	github.com/ipfs/go-graphsync v0.14.6 // indirect
@@ -133,7 +134,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.3 // indirect
 	github.com/multiformats/go-multistream v0.4.1 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
-	github.com/nats-io/nats.go v1.30.2 // indirect
+	github.com/nats-io/nats.go v1.31.0 // indirect
 	github.com/nats-io/nkeys v0.4.6 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/nkovacs/streamquote v1.0.0 // indirect
@@ -186,6 +187,6 @@ require (
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/gorm v1.25.1 // indirect
+	gorm.io/gorm v1.25.5 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
