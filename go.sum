@@ -187,8 +187,8 @@ github.com/filecoin-project/go-statestore v0.2.0 h1:cRRO0aPLrxKQCZ2UOQbzFGn4WDNd
 github.com/filecoin-project/go-statestore v0.2.0/go.mod h1:8sjBYbS35HwPzct7iT4lIXjLlYyPor80aU7t7a/Kspo=
 github.com/filecoin-project/kubo-api-client v0.0.1 h1:IR1b+sm+VYxSRvbgECVv9SbhIgygcXcSoN1Q7xsHDXg=
 github.com/filecoin-project/kubo-api-client v0.0.1/go.mod h1:c36PPMIVOkKfHDwDG5U05gUlPRY9wNuh/BePwo0e+6Y=
-github.com/filecoin-project/lotus v1.24.0 h1:mamEoMdEmF9SKNboS6SWmYBwT62rkEtnntuXXROw74E=
-github.com/filecoin-project/lotus v1.24.0/go.mod h1:8fj3yRE4+LSOtRbylbHgEErl1/ZFmoVZAACT8+fEhoE=
+github.com/filecoin-project/lotus v1.24.1 h1:EVOnptNWB340UYzz9kT0UqZrasPLdntyeYY8NZITqgc=
+github.com/filecoin-project/lotus v1.24.1/go.mod h1:8fj3yRE4+LSOtRbylbHgEErl1/ZFmoVZAACT8+fEhoE=
 github.com/filecoin-project/specs-actors v0.9.13/go.mod h1:TS1AW/7LbG+615j4NsjMK1qlpAwaFsG9w0V2tg2gSao=
 github.com/filecoin-project/specs-actors v0.9.15-0.20220514164640-94e0d5e123bd/go.mod h1:pjGEe3QlWtK20ju/aFRsiArbMX6Cn8rqEhhsiCM9xYE=
 github.com/filecoin-project/specs-actors v0.9.15 h1:3VpKP5/KaDUHQKAMOg4s35g/syDaEBueKLws0vbsjMc=
@@ -883,10 +883,10 @@ github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 github.com/zondax/fil-parser v1.2302.15 h1:dj4TcKDr1PEEpKrBdhSyLwJtf10fs0uIpZuvzfYgSAc=
 github.com/zondax/fil-parser v1.2302.15/go.mod h1:FZ50q45p2pMG2SA1s3OInLVGVgNa9lnA9Duwx/c2dlM=
-github.com/zondax/rosetta-filecoin-lib v1.2400.0 h1:1eIbcjnup8mvL7Y3zcXqv8Wi1t5vOlN1paIGgTU4MyI=
-github.com/zondax/rosetta-filecoin-lib v1.2400.0/go.mod h1:LYKSnDPAi8jP41u81yr7DNi56O9zdenXNfD5RNRrgq4=
-github.com/zondax/rosetta-filecoin-proxy v1.2400.0 h1:UzP4N/MweRh1S6bfwNq4CGV5iTlJwd7OLDJvI3CG20Q=
-github.com/zondax/rosetta-filecoin-proxy v1.2400.0/go.mod h1:IPHgbydsCwrgosstJmjktsTG62yTpaRfQ0w75Ul6SDk=
+github.com/zondax/rosetta-filecoin-lib v1.2401.0 h1:KJqAJxsN+pDWFDd1Vharmko9F+2sF4VbRLbtSug9boM=
+github.com/zondax/rosetta-filecoin-lib v1.2401.0/go.mod h1:B8rmPLiUuQI9HV3zMl+Y2RxROCpIIkNUoXkSu+i9ATU=
+github.com/zondax/rosetta-filecoin-proxy v1.2401.0 h1:kbq3o3+64/JotAsCIjIc1iSEguqGBt3/YnUSNRYEf3E=
+github.com/zondax/rosetta-filecoin-proxy v1.2401.0/go.mod h1:CruCj/t/RD2/6Nf0QapAA8AshdAy+r9v0Sxmhh/T6h4=
 github.com/zondax/znats v0.0.1 h1:x7KnTiwauROKc9DtAPQWxFwsQ0ffX2MXYc4KvWu0k3A=
 github.com/zondax/znats v0.0.1/go.mod h1:kEVeK//qkeEfsV06+lVh2P/n4mk9HilWCP9NeNgFtRE=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
