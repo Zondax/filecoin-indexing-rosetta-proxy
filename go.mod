@@ -4,7 +4,8 @@ go 1.20
 
 require (
 	github.com/Zondax/zindexer v1.0.5
-	github.com/coinbase/rosetta-sdk-go v0.7.10
+	github.com/coinbase/rosetta-sdk-go v0.8.4
+	github.com/coinbase/rosetta-sdk-go/types v1.0.0
 	github.com/filecoin-project/go-address v1.1.0
 	github.com/filecoin-project/go-jsonrpc v0.3.1
 	github.com/filecoin-project/go-state-types v0.13.0-rc.2
