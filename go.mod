@@ -8,7 +8,7 @@ require (
 	github.com/filecoin-project/go-address v1.1.0
 	github.com/filecoin-project/go-jsonrpc v0.3.1
 	github.com/filecoin-project/go-state-types v0.13.0-rc.2
-	github.com/filecoin-project/lotus v1.26.0-rc1
+	github.com/filecoin-project/lotus v1.26.0-rc3
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-log v1.0.5
 	github.com/spf13/viper v1.18.2
