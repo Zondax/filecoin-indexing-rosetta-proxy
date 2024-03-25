@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
+
 	ds "github.com/Zondax/zindexer/components/connections/data_store"
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/lotus/api"
@@ -12,8 +15,6 @@ import (
 	"github.com/ipfs/go-cid"
 	parserTypes "github.com/zondax/fil-parser/types"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
-	"strconv"
-	"time"
 )
 
 type TraceRetriever struct {
@@ -80,7 +81,7 @@ func (t *TraceRetriever) getStoredStateCompute(tipSet *filTypes.TipSet) (*Comput
 
 	// Unmarshall it
 	var trace ComputeStateVersioned
-	err = json.Unmarshal(*data, &trace)
+	err = json.Unmarshal(data, &trace)
 	if err != nil {
 		return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, err, true)
 	}
