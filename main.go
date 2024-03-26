@@ -3,19 +3,20 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/Zondax/zindexer/components/connections/data_store"
-	"github.com/spf13/viper"
-	filparser "github.com/zondax/fil-parser/parser"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/services"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/services/call"
-	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
-	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/Zondax/zindexer/components/connections/data_store"
+	filparser "github.com/zondax/fil-parser/parser"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/services"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/services/call"
+	"github.com/zondax/filecoin-indexing-rosetta-proxy/tools"
+	rosettaFilecoinLib "github.com/zondax/rosetta-filecoin-lib"
+	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 
 	rosettaAsserter "github.com/coinbase/rosetta-sdk-go/asserter"
 	"github.com/coinbase/rosetta-sdk-go/server"
@@ -24,7 +25,7 @@ import (
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/api/client"
 	logging "github.com/ipfs/go-log"
-	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -138,7 +139,7 @@ func startRosettaRPC(ctx context.Context, api api.FullNode) error {
 			Url:      viper.GetString("data_store.url"),
 			User:     viper.GetString("data_store.user"),
 			Password: viper.GetString("data_store.password"),
-			Service:  data_store.MinIOStorage,
+			Service:  data_store.S3Storage,
 		},
 	)
 
