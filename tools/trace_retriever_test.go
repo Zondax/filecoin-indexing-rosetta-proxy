@@ -56,7 +56,7 @@ func TestGetStateCompute(t *testing.T) {
 					nil, errors.New("test error"),
 				).Once()
 
-				traceReceiver.DataStoreClient = ds.DataStoreClient{dsMock}
+				traceReceiver.DataStoreClient = ds.DataStoreClient{Client: dsMock}
 
 				return ts, nil
 			},
@@ -86,7 +86,7 @@ func TestGetStateCompute(t *testing.T) {
 
 					}`), nil,
 				).Once()
-				traceReceiver.DataStoreClient = ds.DataStoreClient{dsMock}
+				traceReceiver.DataStoreClient = ds.DataStoreClient{Client: dsMock}
 				return ts, nil
 			},
 		},
@@ -165,7 +165,7 @@ func TestGetStateCompute(t *testing.T) {
 					}`), nil,
 				).Once()
 
-				traceReceiver.DataStoreClient = ds.DataStoreClient{dsMock}
+				traceReceiver.DataStoreClient = ds.DataStoreClient{Client: dsMock}
 
 				return ts, nil
 			},
