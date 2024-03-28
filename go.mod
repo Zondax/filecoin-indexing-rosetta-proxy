@@ -13,7 +13,7 @@ require (
 	github.com/filecoin-project/go-fil-markets v1.28.3
 	github.com/filecoin-project/go-jsonrpc v0.3.1
 	github.com/filecoin-project/go-state-types v0.13.1
-	github.com/filecoin-project/lotus v1.26.0
+	github.com/filecoin-project/lotus v1.26.1
 	github.com/google/uuid v1.6.0
 	github.com/ipfs/go-block-format v0.2.0
 	github.com/ipfs/go-cid v0.4.1
