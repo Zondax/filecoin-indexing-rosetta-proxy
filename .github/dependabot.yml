@@ -28,4 +28,4 @@ updates:
       prefix: 'chore'
       prefix-development: 'chore'
       include: 'scope'
-    target-branch: dev
+    target-branch: main
