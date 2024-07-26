@@ -12,7 +12,7 @@ require (
 	github.com/filecoin-project/go-data-transfer/v2 v2.0.0-rc8
 	github.com/filecoin-project/go-fil-markets v1.28.3
 	github.com/filecoin-project/go-jsonrpc v0.5.0
-	github.com/filecoin-project/go-state-types v0.13.3
+	github.com/filecoin-project/go-state-types v0.14.0
 	github.com/filecoin-project/lotus v1.26.3
 	github.com/google/uuid v1.6.0
 	github.com/ipfs/go-block-format v0.2.0
