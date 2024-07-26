@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"time"
+
 	"github.com/coinbase/rosetta-sdk-go/server"
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/go-state-types/abi"
@@ -15,7 +17,6 @@ import (
 	filLib "github.com/zondax/rosetta-filecoin-lib"
 	rosetta "github.com/zondax/rosetta-filecoin-proxy/rosetta/services"
 	rosettaTools "github.com/zondax/rosetta-filecoin-proxy/rosetta/tools"
-	"time"
 )
 
 const (
@@ -151,7 +152,6 @@ func (s *BlockAPIService) Block(
 		parsedTraces        []*parserTypes.Transaction
 		transactions        []*rosettaTypes.Transaction
 		discoveredAddresses *parserTypes.AddressInfoMap
-		parseError          error
 	)
 
 	if requestedHeight > 1 {
@@ -182,10 +182,16 @@ func (s *BlockAPIService) Block(
 			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTipset, unmarshalErr, true) //TODO: Move to the part of code where rosetta asks for the tipset
 		}
 
-		parsedTraces, discoveredAddresses, parseError = s.p.ParseTransactions(tracesBytes, extendedTipset, nil, nil) // TODO: fill with ethLogs
+		txData := parserTypes.TxsData{
+			Traces: tracesBytes,
+			Tipset: extendedTipset,
+		}
+		result, parseError := s.p.ParseTransactions(ctx, txData) // TODO: fill with ethLogs
 		if parseError != nil {
 			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, parseError, true)
 		}
+		parsedTraces = result.Txs
+		discoveredAddresses = result.Addresses
 		transactions = tools.ToRosetta(parsedTraces)
 	}
 
