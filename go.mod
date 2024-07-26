@@ -1,8 +1,8 @@
 module github.com/zondax/filecoin-indexing-rosetta-proxy
 
-go 1.21
+go 1.22
 
-toolchain go1.21.3
+toolchain go1.22.1
 
 require (
 	github.com/Zondax/zindexer v1.5.3
