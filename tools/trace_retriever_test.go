@@ -102,7 +102,7 @@ func TestGetStateCompute(t *testing.T) {
 				ts, err := filTypes.NewTipSet(blks)
 				assert.NoError(t, err)
 
-				fullNodeMock := &mocks.FullNodeMock{}
+				fullNodeMock := &mocks.FullNode{}
 				fullNodeMock.On("StateCompute", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 					Once().Return(nil, errors.New("test error"))
 				return ts, fullNodeMock
@@ -124,7 +124,7 @@ func TestGetStateCompute(t *testing.T) {
 				ts, err := filTypes.NewTipSet(blks)
 				assert.NoError(t, err)
 
-				fullNodeMock := &mocks.FullNodeMock{}
+				fullNodeMock := &mocks.FullNode{}
 				fullNodeMock.On("StateCompute", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
 					Once().Return(&api.ComputeStateOutput{
 					Root: testCid,
