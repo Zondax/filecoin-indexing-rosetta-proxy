@@ -20,7 +20,7 @@ require (
 	github.com/libp2p/go-libp2p v0.35.4
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
-	github.com/zondax/fil-parser v1.2701.2
+	github.com/zondax/fil-parser v1.2801.0
 	github.com/zondax/rosetta-filecoin-lib v1.2801.0
 	github.com/zondax/rosetta-filecoin-proxy v1.2801.0
 )
@@ -190,7 +190,7 @@ require (
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
 	golang.org/x/crypto v0.24.0 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
-	golang.org/x/mod v0.18.0 // indirect
+	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.21.0 // indirect
@@ -200,6 +200,6 @@ require (
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/gorm v1.25.10 // indirect
+	gorm.io/gorm v1.25.11 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
