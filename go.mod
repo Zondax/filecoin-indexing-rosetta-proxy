@@ -9,7 +9,7 @@ require (
 	github.com/coinbase/rosetta-sdk-go v0.7.10
 	github.com/filecoin-project/go-address v1.1.0
 	github.com/filecoin-project/go-bitfield v0.2.4
-	github.com/filecoin-project/go-f3 v0.0.7
+	github.com/filecoin-project/go-f3 v0.5.0
 	github.com/filecoin-project/go-jsonrpc v0.5.0
 	github.com/filecoin-project/go-state-types v0.14.0
 	github.com/filecoin-project/lotus v1.28.1
