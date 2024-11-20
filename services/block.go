@@ -42,8 +42,7 @@ type BlockAPIService struct {
 }
 
 // NewBlockAPIService creates a new instance of a BlockAPIService.
-func NewBlockAPIService(network *rosettaTypes.NetworkIdentifier, api *api.FullNode,
-	retriever *tools.TraceRetriever, r *filLib.RosettaConstructionFilecoin) server.BlockAPIServicer {
+func NewBlockAPIService(network *rosettaTypes.NetworkIdentifier, api *api.FullNode, retriever *tools.TraceRetriever, r *filLib.RosettaConstructionFilecoin) server.BlockAPIServicer {
 	parser, _ := filparser.NewFilecoinParser(r, common.DataSource{Node: *api}, nil) //TODO: Check this error
 	return &BlockAPIService{
 		network:        network,

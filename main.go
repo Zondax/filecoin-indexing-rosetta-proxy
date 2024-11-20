@@ -49,6 +49,7 @@ func startLogger(level string) {
 	logging.SetAllLoggers(lvl)
 }
 
+// nolint
 func getFullNodeAPI(addr string, token string) (api.FullNode, jsonrpc.ClientCloser, error) {
 	headers := http.Header{}
 	if len(token) > 0 {
@@ -168,7 +169,7 @@ func startRosettaRPC(ctx context.Context, api api.FullNode) error {
 	return server.ListenAndServe()
 }
 
-func connectAPI(addr string, token string) (api.FullNode, jsonrpc.ClientCloser, error) {
+func connectAPI(addr string, token string) (api.FullNode, jsonrpc.ClientCloser, error) { // nolint
 	lotusAPI, clientCloser, err := getFullNodeAPI(addr, token)
 	if err != nil {
 		rosetta.Logger.Errorf("Error %s\n", err)
@@ -208,7 +209,7 @@ func main() {
 	viper.SetDefault("use_cached_traces", false)
 
 	var lotusAPI api.FullNode
-	var clientCloser jsonrpc.ClientCloser
+	var clientCloser jsonrpc.ClientCloser // nolint
 	var err error
 
 	retryAttempts, _ := strconv.Atoi(rosetta.RetryConnectAttempts)

@@ -24,7 +24,7 @@ type TraceRetriever struct {
 }
 
 type ComputeStateVersioned struct {
-	Root         cid.Cid            `json:"Root"`
+	Root         cid.Cid            `json:"Root"` // nolint
 	Trace        []*api.InvocResult `json:"Trace"`
 	LotusVersion string             `json:"LotusVersion"`
 }

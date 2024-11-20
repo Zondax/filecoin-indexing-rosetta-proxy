@@ -2,6 +2,7 @@ package call
 
 import (
 	"context"
+
 	"github.com/coinbase/rosetta-sdk-go/server"
 	rosettaTypes "github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/lotus/api"
@@ -16,6 +17,7 @@ type CallAPIService struct {
 }
 
 // NewCallAPIService creates a new instance of a CallAPIService.
+// nolint
 func NewCallAPIService(network *rosettaTypes.NetworkIdentifier, api *api.FullNode, retriever *tools.TraceRetriever) server.CallAPIServicer {
 	return &CallAPIService{
 		network:        network,
