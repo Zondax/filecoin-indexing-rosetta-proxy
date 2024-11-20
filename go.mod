@@ -1,8 +1,8 @@
 module github.com/zondax/filecoin-indexing-rosetta-proxy
 
-go 1.22
+go 1.22.0
 
-toolchain go1.22.1
+toolchain go1.23.0
 
 require (
 	github.com/Zondax/zindexer v1.5.3
@@ -21,7 +21,7 @@ require (
 	github.com/libp2p/go-libp2p v0.35.5
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
-	github.com/zondax/fil-parser v1.2701.2
+	github.com/zondax/fil-parser v1.3000.0
 	github.com/zondax/rosetta-filecoin-lib v1.3000.0
 	github.com/zondax/rosetta-filecoin-proxy v1.3000.0
 )
@@ -41,8 +41,8 @@ require (
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
-	github.com/bytedance/sonic v1.11.9 // indirect
-	github.com/bytedance/sonic/loader v0.1.1 // indirect
+	github.com/bytedance/sonic v1.12.3 // indirect
+	github.com/bytedance/sonic/loader v0.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
@@ -74,7 +74,7 @@ require (
 	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/go-redsync/redsync/v4 v4.11.0 // indirect
-	github.com/go-resty/resty/v2 v2.13.1 // indirect
+	github.com/go-resty/resty/v2 v2.16.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/mock v1.6.0 // indirect
@@ -112,7 +112,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/karrick/godirwalk v1.15.3 // indirect
-	github.com/klauspost/compress v1.17.9 // indirect
+	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/libp2p/go-flow-metrics v0.1.0 // indirect
@@ -193,7 +193,7 @@ require (
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
 	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e // indirect
-	golang.org/x/mod v0.20.0 // indirect
+	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
@@ -203,6 +203,6 @@ require (
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/gorm v1.25.10 // indirect
+	gorm.io/gorm v1.25.12 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
