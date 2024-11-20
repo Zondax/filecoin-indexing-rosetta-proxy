@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+
 	"github.com/coinbase/rosetta-sdk-go/server"
 	"github.com/coinbase/rosetta-sdk-go/types"
 	"github.com/filecoin-project/go-address"
@@ -89,8 +90,8 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 	request *types.ConstructionMetadataRequest,
 ) (*types.ConstructionMetadataResponse, *types.Error) {
 	var (
-		addressSenderParsed   address.Address
-		addressReceiverParsed address.Address
+		addressSenderParsed   address.Address // nolint
+		addressReceiverParsed address.Address // nolint
 		err                   error
 		nonce                 uint64
 		blockInclUint         uint64 = 1
@@ -135,7 +136,7 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 		// Parse sender address - this field is optional
 		addressSenderRaw, okSender := request.Options[OptionsSenderIDKey]
 		if okSender {
-			addressSenderParsed, err = address.NewFromString(addressSenderRaw.(string))
+			addressSenderParsed, err = address.NewFromString(addressSenderRaw.(string)) // nolint
 			if err != nil {
 				return nil, rosetta.BuildError(rosetta.ErrInvalidAccountAddress, err, true)
 			}
@@ -145,7 +146,7 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 		// Parse receiver address - this field is optional
 		addressReceiverRaw, okReceiver := request.Options[OptionsReceiverIDKey]
 		if okReceiver {
-			addressReceiverParsed, err = address.NewFromString(addressReceiverRaw.(string))
+			addressReceiverParsed, err = address.NewFromString(addressReceiverRaw.(string)) // nolint
 			if err != nil {
 				return nil, rosetta.BuildError(rosetta.ErrInvalidAccountAddress, err, true)
 			}
@@ -185,7 +186,7 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 			}
 
 			// GasEstimateGasPremium
-			gasPremium, gasErr := c.node.GasEstimateGasPremium(ctx, blockInclUint, addressSenderParsed, message.GasLimit, filTypes.TipSetKey{})
+			gasPremium, gasErr := c.node.GasEstimateGasPremium(ctx, blockInclUint, addressSenderParsed, message.GasLimit, filTypes.TipSetKey{}) // nolint
 			if gasErr != nil {
 				return nil, rosetta.BuildError(rosetta.ErrUnableToEstimateGasPremium, gasErr, true)
 			}
@@ -199,7 +200,7 @@ func (c *ConstructionAPIService) ConstructionMetadata(
 			message.GasFeeCap = gasFeeCap
 		} else {
 			// We can only estimate gas premium without a sender address
-			gasPremium, gasErr := c.node.GasEstimateGasPremium(ctx, blockInclUint, address.Address{}, message.GasLimit, filTypes.TipSetKey{})
+			gasPremium, gasErr := c.node.GasEstimateGasPremium(ctx, blockInclUint, address.Address{}, message.GasLimit, filTypes.TipSetKey{}) // nolint
 			if gasErr != nil {
 				return nil, rosetta.BuildError(rosetta.ErrUnableToEstimateGasPremium, gasErr, true)
 			}
