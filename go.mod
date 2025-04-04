@@ -12,8 +12,8 @@ require (
 	github.com/filecoin-project/go-bitfield v0.2.4
 	github.com/filecoin-project/go-f3 v0.8.3
 	github.com/filecoin-project/go-jsonrpc v0.7.1
-	github.com/filecoin-project/go-state-types v0.16.0-rc7
-	github.com/filecoin-project/lotus v1.32.0-rc3
+	github.com/filecoin-project/go-state-types v0.16.0
+	github.com/filecoin-project/lotus v1.32.1
 	github.com/google/uuid v1.6.0
 	github.com/ipfs/go-block-format v0.2.0
 	github.com/ipfs/go-cid v0.5.0
@@ -21,9 +21,9 @@ require (
 	github.com/libp2p/go-libp2p v0.39.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.10.0
-	github.com/zondax/fil-parser v1.3200.0-rc3
-	github.com/zondax/rosetta-filecoin-lib v1.3200.0-rc3
-	github.com/zondax/rosetta-filecoin-proxy v1.3200.0-rc3
+	github.com/zondax/fil-parser v1.3201.0
+	github.com/zondax/rosetta-filecoin-lib v1.3201.0-rc1
+	github.com/zondax/rosetta-filecoin-proxy v1.3201.0
 )
 
 replace github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
