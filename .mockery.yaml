@@ -1,0 +1,19 @@
+force-file-write: true
+
+packages:
+  github.com/Zondax/zindexer/components/connections/data_store:
+    interfaces:
+      IDataStoreClient:
+        configs:
+          - filename: "datastore_mock.go"
+            dir: "tests/mocks"
+            pkgname: "mocks"
+            structname: "DataStoreMock"
+  github.com/filecoin-project/lotus/api:
+    interfaces:
+      FullNode:
+        configs:
+          - filename: "full_node_mock.go"
+            dir: "tests/mocks"
+            pkgname: "mocks"
+            structname: "FullNode"

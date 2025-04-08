@@ -39,3 +39,7 @@ lint:
 gitclean:
 	git clean -xfd
 	git submodule foreach --recursive git clean -xfd
+
+.PHONY: mocks
+mocks:
+	@./tests/generate_mocks.sh
