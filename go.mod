@@ -6,7 +6,7 @@ toolchain go1.24.4
 
 require (
 	github.com/Zondax/zindexer v1.5.3
-	github.com/coinbase/rosetta-sdk-go v0.8.5
+	github.com/coinbase/rosetta-sdk-go v0.9.0
 	github.com/coinbase/rosetta-sdk-go/types v1.0.0
 	github.com/filecoin-project/go-address v1.2.0
 	github.com/filecoin-project/go-bitfield v0.2.4
