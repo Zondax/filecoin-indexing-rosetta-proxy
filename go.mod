@@ -11,7 +11,7 @@ require (
 	github.com/filecoin-project/go-address v1.2.0
 	github.com/filecoin-project/go-bitfield v0.2.4
 	github.com/filecoin-project/go-f3 v0.8.10
-	github.com/filecoin-project/go-jsonrpc v0.8.0
+	github.com/filecoin-project/go-jsonrpc v0.10.0
 	github.com/filecoin-project/go-state-types v0.17.0
 	github.com/filecoin-project/lotus v1.34.1
 	github.com/google/uuid v1.6.0
