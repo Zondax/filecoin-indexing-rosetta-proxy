@@ -20,7 +20,7 @@ require (
 	github.com/ipfs/go-log v1.0.5
 	github.com/libp2p/go-libp2p v0.42.0
 	github.com/spf13/viper v1.20.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/zondax/fil-parser v0.0.0-20250918134302-6f951c117bc7 // v2.3401.0
 	github.com/zondax/rosetta-filecoin-lib v1.3401.0
 	github.com/zondax/rosetta-filecoin-proxy v1.3401.0
