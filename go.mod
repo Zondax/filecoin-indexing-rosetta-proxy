@@ -23,7 +23,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/zondax/fil-parser v0.0.0-20250918134302-6f951c117bc7 // v2.3401.0
 	github.com/zondax/rosetta-filecoin-lib v1.3401.0
-	github.com/zondax/rosetta-filecoin-proxy v1.3401.0
+	github.com/zondax/rosetta-filecoin-proxy v1.3401.1
 )
 
 replace github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
