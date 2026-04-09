@@ -106,8 +106,8 @@ github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354/go.mod h1:WmhPx2Nbnht
 github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
 github.com/coinbase/rosetta-sdk-go v0.9.0 h1:6o7CbkIpTxI5VZR79eJ07gXTINZxgt3QGNAriQWI7JU=
 github.com/coinbase/rosetta-sdk-go v0.9.0/go.mod h1:xIu+9M4EN/WkAy/H67lP8iu+/Fy3Wbyihmv8L+XacWM=
-github.com/coinbase/rosetta-sdk-go/types v1.0.0 h1:jpVIwLcPoOeCR6o1tU+Xv7r5bMONNbHU7MuEHboiFuA=
-github.com/coinbase/rosetta-sdk-go/types v1.0.0/go.mod h1:eq7W2TMRH22GTW0N0beDnN931DW0/WOI1R2sdHNHG4c=
+github.com/coinbase/rosetta-sdk-go/types v1.7.1 h1:j4Fh+6KJ5cZ0Eh6wARuPDE/jXJZLTcbqGMbRmzeDDiI=
+github.com/coinbase/rosetta-sdk-go/types v1.7.1/go.mod h1:bN5JAIEG/dGZNnYzsfizeHhzFOf9s5rkJoaNM/7L5QI=
 github.com/consensys/bavard v0.1.13 h1:oLhMLOFGTLdlda/kma4VOJazblc7IM5y5QPd2A/YjhQ=
 github.com/consensys/bavard v0.1.13/go.mod h1:9ItSMtA/dXMAiL7BG6bqW2m3NdSEObYWoH223nGHukI=
 github.com/consensys/gnark-crypto v0.12.1 h1:lHH39WuuFgVHONRl3J0LRBtuYdQTumFSDtJF7HpyG8M=
