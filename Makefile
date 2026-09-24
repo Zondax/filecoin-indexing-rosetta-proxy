@@ -26,7 +26,7 @@ build_ffi:
 	make -C extern/filecoin-ffi
 
 install_lint:
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.54.2
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.1
 
 check-modtidy:
 	go mod tidy
@@ -34,7 +34,8 @@ check-modtidy:
 
 lint:
 	golangci-lint --version
-	golangci-lint run -E gofmt -E gosec -E goconst -E gocritic --timeout 5m
+	golangci-lint run --timeout 5m
+	golangci-lint fmt --diff
 
 gitclean:
 	git clean -xfd
