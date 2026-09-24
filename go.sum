@@ -812,8 +812,8 @@ github.com/yuin/gopher-lua v1.1.1 h1:kYKnWBjvbNP4XLT3+bPEwAXJx262OhaHDWDVOPjL46M
 github.com/yuin/gopher-lua v1.1.1/go.mod h1:GBR0iDaNXjAgGg9zfCvksxSRnQx76gclCIb7kdAd1Pw=
 github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo0=
 github.com/yusufpapurcu/wmi v1.2.4/go.mod h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=
-github.com/zondax/fil-parser v1.3100.1-0.20260923180157-66be9250be4e h1:rzakL90C2ELr6+O6QgxoPJv/3UXQquMLAsFTv3qEj2Q=
-github.com/zondax/fil-parser v1.3100.1-0.20260923180157-66be9250be4e/go.mod h1:cKwKytfpX2xBZxvZjBg1H7GI8SuIGCnJXMDjBTi5OFg=
+github.com/zondax/fil-parser v1.3100.1-0.20260924210613-5d095086118f h1:0+jRclPm0OFYq2FfbgqF7B4n2e8/YlCX//H3HMRnEh8=
+github.com/zondax/fil-parser v1.3100.1-0.20260924210613-5d095086118f/go.mod h1:cKwKytfpX2xBZxvZjBg1H7GI8SuIGCnJXMDjBTi5OFg=
 github.com/zondax/golem v0.30.0 h1:s2pmw2sXO05RsHEwyLxRtKdvS5PXWcuIVflj67WFnKs=
 github.com/zondax/golem v0.30.0/go.mod h1:26pzA5IFGWuun+ZzwhRtn5eZKR1c90cVTwZK8H7S2Ss=
 github.com/zondax/rosetta-filecoin-lib v1.3700.1-rc1 h1:JgH1c/mHOog+RkdAQSkCISe2Hk50/gI7DqxtpLURvWc=

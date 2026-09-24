@@ -19,7 +19,7 @@ require (
 	github.com/libp2p/go-libp2p v0.49.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
-	github.com/zondax/fil-parser v1.3100.1-0.20260923180157-66be9250be4e // v4.3700.0-rc3
+	github.com/zondax/fil-parser v1.3100.1-0.20260924210613-5d095086118f // v4.3700.0-rc4
 	github.com/zondax/rosetta-filecoin-lib v1.3700.1-rc1
 	github.com/zondax/rosetta-filecoin-proxy v1.3700.1-rc1
 	golang.org/x/mod v0.38.0
