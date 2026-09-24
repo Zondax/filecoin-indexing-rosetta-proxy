@@ -22,6 +22,7 @@ require (
 	github.com/zondax/fil-parser v1.3100.1-0.20260923180157-66be9250be4e // v4.3700.0-rc3
 	github.com/zondax/rosetta-filecoin-lib v1.3700.1-rc1
 	github.com/zondax/rosetta-filecoin-proxy v1.3700.1-rc1
+	golang.org/x/mod v0.38.0
 )
 
 replace github.com/filecoin-project/filecoin-ffi => ./extern/filecoin-ffi
@@ -177,7 +178,6 @@ require (
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
 	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/exp v0.0.0-20260718201538-764159d718ef // indirect
-	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

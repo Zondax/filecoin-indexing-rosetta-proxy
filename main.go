@@ -190,6 +190,9 @@ func connectAPI(addr string, token string) (api.FullNode, jsonrpc.ClientCloser, 
 	version, err := lotusAPI.Version(context.Background())
 	if err != nil {
 		rosetta.Logger.Warn("Could not get Lotus api version!")
+	} else {
+		// Used to tell fil-parser which lotus version generated the traces
+		tools.ConnectedToLotusVersion = version.Version
 	}
 
 	rosetta.Logger.Infof("Connected to Lotus node version: %s | Network: %s ", version.String(), tools.NetworkName)

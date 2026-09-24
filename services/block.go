@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/coinbase/rosetta-sdk-go/server"
@@ -159,32 +158,22 @@ func (s *BlockAPIService) Block(
 			return nil, err
 		}
 
-		tracesBytes, marshalErr := json.Marshal(states.Trace)
-		if marshalErr != nil {
-			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, marshalErr, true)
-		}
-
 		// TODO: uncomment for wallaby
 		// ethLogs, err := s.traceRetriever.GetEthLogs(ctx, &s.node, tipSet)
 		// if err != nil {
 		//	 return nil, err
 		// }
 
-		extendedTipset := &parserTypes.ExtendedTipSet{}
-		tipsetBytes, marshalErr := json.Marshal(tipSet)
-		if marshalErr != nil {
-			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTipset, marshalErr, true) //TODO: Move to the part of code where rosetta asks for the tipset
+		extendedTipset, tipsetErr := tools.ToExtendedTipSet(tipSet)
+		if tipsetErr != nil {
+			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTipset, tipsetErr, true) //TODO: Move to the part of code where rosetta asks for the tipset
 		}
 
-		unmarshalErr := extendedTipset.UnmarshalJSON(tipsetBytes)
-		if unmarshalErr != nil {
-			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTipset, unmarshalErr, true) //TODO: Move to the part of code where rosetta asks for the tipset
+		txData, txDataErr := tools.BuildTxsData(states, extendedTipset)
+		if txDataErr != nil {
+			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, txDataErr, true)
 		}
 
-		txData := parserTypes.TxsData{
-			Traces: tracesBytes,
-			Tipset: extendedTipset,
-		}
 		result, parseError := s.p.ParseTransactions(ctx, []api.FullNode{s.node}, txData) // TODO: fill with ethLogs
 		if parseError != nil {
 			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, parseError, true)
