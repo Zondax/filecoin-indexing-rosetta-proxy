@@ -24,6 +24,7 @@ import (
 	"github.com/filecoin-project/go-jsonrpc"
 	"github.com/filecoin-project/lotus/api"
 	"github.com/filecoin-project/lotus/api/client"
+	"github.com/filecoin-project/lotus/api/v2api"
 	logging "github.com/ipfs/go-log"
 	"github.com/spf13/viper"
 )
@@ -68,7 +69,10 @@ func newBlockchainRouter(
 	traceRetriever *tools.TraceRetriever,
 	rosettaLib *rosettaFilecoinLib.RosettaConstructionFilecoin,
 ) http.Handler {
-	accountAPIService := rosetta.NewAccountAPIService(network, &api, rosettaLib)
+	// Lotus V2 APIs are not used by this service: pass a nil V2 client so the
+	// upstream account service always falls back to the V1 API.
+	var v2API v2api.FullNode
+	accountAPIService := rosetta.NewAccountAPIService(network, &api, &v2API, rosettaLib)
 	accountAPIController := server.NewAccountAPIController(
 		accountAPIService,
 		asserter,

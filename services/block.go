@@ -185,7 +185,7 @@ func (s *BlockAPIService) Block(
 			Traces: tracesBytes,
 			Tipset: extendedTipset,
 		}
-		result, parseError := s.p.ParseTransactions(ctx, txData) // TODO: fill with ethLogs
+		result, parseError := s.p.ParseTransactions(ctx, []api.FullNode{s.node}, txData) // TODO: fill with ethLogs
 		if parseError != nil {
 			return nil, rosetta.BuildError(rosetta.ErrUnableToGetTrace, parseError, true)
 		}
@@ -225,7 +225,7 @@ func (s *BlockAPIService) Block(
 	respBlock := &rosettaTypes.Block{
 		BlockIdentifier:       blockId,
 		ParentBlockIdentifier: parentBlockId,
-		Timestamp:             int64(tipSet.MinTimestamp()) * rosetta.FactorSecondToMillisecond, // [ms]
+		Timestamp:             int64(tipSet.MinTimestamp()) * rosetta.FactorSecondToMillisecond, //nolint:gosec // G115: unix timestamp fits in int64 [ms]
 		Metadata:              md,
 	}
 	if transactions != nil {
