@@ -29,7 +29,7 @@ func ToRosetta(transactions []*types.Transaction) []*rosettaTypes.Transaction {
 func operationFromTransaction(transaction *types.Transaction) *rosettaTypes.Operation {
 	return &rosettaTypes.Operation{
 		OperationIdentifier: &rosettaTypes.OperationIdentifier{
-			Index: int64(transaction.BasicBlockData.Height),
+			Index: int64(transaction.Height), //nolint:gosec // G115: chain height fits in int64
 		},
 		Type:   transaction.TxType,
 		Status: &transaction.Status,
