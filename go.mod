@@ -11,7 +11,7 @@ require (
 	github.com/filecoin-project/go-f3 v0.8.14
 	github.com/filecoin-project/go-jsonrpc v0.10.2
 	github.com/filecoin-project/go-state-types v0.19.1
-	github.com/filecoin-project/lotus v1.37.0-rc1
+	github.com/filecoin-project/lotus v1.37.0
 	github.com/google/uuid v1.6.0
 	github.com/ipfs/go-block-format v0.2.4
 	github.com/ipfs/go-cid v0.6.2
@@ -20,8 +20,8 @@ require (
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
 	github.com/zondax/fil-parser v1.3100.1-0.20260924210613-5d095086118f // v4.3700.0-rc4
-	github.com/zondax/rosetta-filecoin-lib v1.3700.1-rc1
-	github.com/zondax/rosetta-filecoin-proxy v1.3700.1-rc1
+	github.com/zondax/rosetta-filecoin-lib v1.3700.1
+	github.com/zondax/rosetta-filecoin-proxy v1.3700.1
 	golang.org/x/mod v0.38.0
 )
 
@@ -48,7 +48,7 @@ require (
 	github.com/dgraph-io/ristretto v0.2.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/filecoin-project/go-amt-ipld/v2 v2.1.1-0.20201006184820-924ee87a1349 // indirect
+	github.com/filecoin-project/go-amt-ipld/v2 v2.2.0 // indirect
 	github.com/filecoin-project/go-amt-ipld/v3 v3.1.0 // indirect
 	github.com/filecoin-project/go-amt-ipld/v4 v4.4.0 // indirect
 	github.com/filecoin-project/go-clock v0.1.0 // indirect
